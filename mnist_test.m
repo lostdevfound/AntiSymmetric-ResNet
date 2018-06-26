@@ -4,23 +4,23 @@ clc;
 [trainImages,trainLabels, validatimages, validatLabels] = loadMNIST('mnist/train-images.idx3-ubyte', 'mnist/train-labels.idx1-ubyte','mnist/t10k-images.idx3-ubyte','mnist/t10k-labels.idx1-ubyte');
 
 % Setup NN's params
-h = 1;
-igamma = 0.01;
-trainCycles = 400000;
+h = 0.2;        % default 0.7
+igamma = 0.3;       % default 0.1
+trainCycles = 400000;       % default 400000
 eta = 0.0005;
 initScaler = 0.07;
 
-load('resources/antisymresnet_trained');    % Load pretrained AntiSymResNet
+% load('resources/net_5_layer_trained');    % Load pretrained AntiSymResNet
 
 % Set to true if need to retrain
-first_time_launch = false;
+first_time_launch = true;
 doPerturbation = true;
 
 
 % Training part.
 if first_time_launch == true
     % Init NN and train it
-    net = AntiSymResNet(3, 784, 10, 20, igamma, h, initScaler, false);
+    net = AntiSymResNet(10, 784, 10, 20, igamma, h, initScaler, false);
     disp('training...');
     net.train(trainImages, trainLabels, trainCycles, eta);      % fast but not accurate training
     disp('training complete.');
