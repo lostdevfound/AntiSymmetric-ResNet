@@ -173,9 +173,10 @@ classdef AntiSymResNet < handle
                 costAvg = costAvg + norm(c - y)^2;
 
                 if mod(i, numSamples) == 0
+                    progress = i / cycles;
                     [sigm(forwardProp(obj, x)),c]     % wrap into sigmoid function for 0-1 range
                     costAvg = costAvg / double(numSamples);
-                    disp(['average cost over ', num2str(numSamples, '%0d'), ' samples: ', num2str(costAvg, '%0.3f')]);
+                    disp(['average cost over ', num2str(numSamples, '%0d'),' samples: ', num2str(costAvg, '%0.3f'),' progress: ', num2str(progress, '%0d')]);
                     costAvg = 0;
                 end
 

@@ -4,13 +4,13 @@ clc;
 [trainImages,trainLabels, validatimages, validatLabels] = loadMNIST('mnist/train-images.idx3-ubyte', 'mnist/train-labels.idx1-ubyte','mnist/t10k-images.idx3-ubyte','mnist/t10k-labels.idx1-ubyte');
 
 % Setup NN's params
-h = 0.1;        % default 0.7
-igamma = 0.3;       % default 0.1
-trainCycles = 500000;       % default 400000
-eta = 0.0005;           % good default 0.0005
+h = 0.4;        % default 0.7
+igamma = 0.1;       % default 0.1
+trainCycles = 850000;       % default 400000
+eta = 0.0004;           % good default 0.0005
 initScaler = 0.07;
 
-% load('resources/net_15_layer_h007_igamma03');    % Load pretrained AntiSymResNet
+% load('resources/net_20_layer_h01_igamma03');    % Load pretrained AntiSymResNet
 
 % Set to true if need to retrain
 first_time_launch = true;
@@ -20,13 +20,13 @@ doPerturbation = true;
 % Training part.
 if first_time_launch == true
     % Init NN and train it
-    net = AntiSymResNet(5, 784, 10, 20, igamma, h, initScaler, false);
+    net = AntiSymResNet(20, 784, 10, 15, igamma, h, initScaler, false);
     disp('training...');
     net.train(trainImages, trainLabels, trainCycles, eta);      % fast but not accurate training
     disp('training complete.');
 end
 
-save 'net_5_layer_h01_igamma03.mat' net;
+save 'net_20_layer_h04_igamma01.mat' net;
 
 % Pick image then forwardProp image and print result in the console.
 index = 99;     % Pick some image by its index (digit 3 is index 33)
