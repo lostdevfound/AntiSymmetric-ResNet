@@ -221,13 +221,17 @@ end
 
 function d = reluD(W, x, b, g, antisym, testmode)
     % reluD derivative of the ReLu function
+    leak = 0.1;
+    
     if testmode == true
         d = 1;    % this is for testing without max() operator
     elseif antisym == true
         [~,n] = size(W);
         d = 0.5*(W - W' - g*eye(n))*x + b > 0;
+        d(d==0) = leak;
     else
         d = W*x + b > 0;
+        d(d==0) = leak;
     end
 end
 
