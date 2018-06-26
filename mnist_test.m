@@ -4,31 +4,32 @@ clc;
 [trainImages,trainLabels, validatimages, validatLabels] = loadMNIST('mnist/train-images.idx3-ubyte', 'mnist/train-labels.idx1-ubyte','mnist/t10k-images.idx3-ubyte','mnist/t10k-labels.idx1-ubyte');
 
 % Setup NN's params
-h = 0.07;        % default 0.7
+h = 0.05;        % default 0.7
 igamma = 0.3;       % default 0.1
-trainCycles = 450000;       % default 400000
-eta = 0.0006;           % good default 0.0005
+trainCycles = 850000;       % default 400000
+eta = 0.0005;           % good default 0.0005
 initScaler = 0.07;
 
 load('resources/net_20_layer_h007_igamma03');    % Load pretrained AntiSymResNet
 
 % Set to true if need to retrain
-first_time_launch = false;
+first_time_launch = true;
 doPerturbation = true;
 
 
 % Training part.
 if first_time_launch == true
     % Init NN and train it
-    net = AntiSymResNet(15, 784, 10, 20, igamma, h, initScaler, false);
+    net = AntiSymResNet(25, 784, 10, 20, igamma, h, initScaler, false);
     disp('training...');
     net.train(trainImages, trainLabels, trainCycles, eta);      % fast but not accurate training
     disp('training complete.');
 end
 
+save()
 
 % Pick image then forwardProp image and print result in the console.
-index = 33;     % Pick some image by its index (digit 3 is index 33)
+index = 99;     % Pick some image by its index (digit 3 is index 33)
 testImg =  validatimages(:,index);
 [~,digitNumber] = max(validatLabels(:,index))
 perturbedImg = testImg;
