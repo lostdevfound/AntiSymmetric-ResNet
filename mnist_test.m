@@ -7,10 +7,10 @@ clc;
 h = 0.05;        % default 0.7
 igamma = 0.3;       % default 0.1
 trainCycles = 850000;       % default 400000
-eta = 0.0005;           % good default 0.0005
+eta = 0.0004;           % good default 0.0005
 initScaler = 0.07;
 
-load('resources/net_20_layer_h007_igamma03');    % Load pretrained AntiSymResNet
+% load('resources/net_15_layer_h007_igamma03');    % Load pretrained AntiSymResNet
 
 % Set to true if need to retrain
 first_time_launch = true;
@@ -26,7 +26,7 @@ if first_time_launch == true
     disp('training complete.');
 end
 
-save()
+save 'net_25_layer_h005_igamma03.mat' net;
 
 % Pick image then forwardProp image and print result in the console.
 index = 99;     % Pick some image by its index (digit 3 is index 33)
