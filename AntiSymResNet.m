@@ -41,8 +41,8 @@ classdef AntiSymResNet < handle
             obj.D{2} = zeros(obj.hiddenLayersSize, 1);    % init array D as matrix with all enries 0
 
             % Build W2, b2 for connections from input layer to first hidden
-            W2 = obj.initScaler*rand(obj.hiddenLayersSize, obj.inputLayerSize);
-            b2 = obj.initScaler*rand(obj.hiddenLayersSize,1);
+            W2 = obj.initScaler*normrnd(0,1,[obj.hiddenLayersSize, obj.inputLayerSize]);
+            b2 = obj.initScaler*normrnd(0,1,[obj.hiddenLayersSize,1]);
 
             obj.arrayWeights{2} = W2;
             obj.arrayBiases{2} = b2;
@@ -51,8 +51,8 @@ classdef AntiSymResNet < handle
 
             % Build intermediate W and b
             for i = 3:obj.totalNumLayers - 1   % do not build W and b from last hidden layer to output layer
-                K = obj.initScaler*rand(obj.hiddenLayersSize, obj.hiddenLayersSize);
-                b = obj.initScaler*rand(obj.hiddenLayersSize,1);
+                K = obj.initScaler*normrnd(0,1,[obj.hiddenLayersSize, obj.hiddenLayersSize]);
+                b = obj.initScaler*normrnd(0,1,[obj.hiddenLayersSize,1]);
                 % make W anti-symmetric and add igamma diffusion by substracting gammaMatrix
                 W = 0.5*(K - K'- gammaMatrix);
                 obj.arrayWeights{i} = W;
@@ -60,8 +60,8 @@ classdef AntiSymResNet < handle
             end
 
             % Build W and b from last hidden layer to output layer
-            WN = obj.initScaler*rand(obj.outputLayerSize, obj.hiddenLayersSize);
-            bN = obj.initScaler*rand(obj.outputLayerSize, 1);
+            WN = obj.initScaler*normrnd(0,1,[obj.outputLayerSize, obj.hiddenLayersSize]);
+            bN = obj.initScaler*normrnd(0,1,[obj.outputLayerSize, 1]);
             obj.arrayWeights{obj.totalNumLayers} = WN;
             obj.arrayBiases{obj.totalNumLayers} = bN;
 
@@ -82,7 +82,6 @@ classdef AntiSymResNet < handle
 
             obj.Y{YN} = obj.arrayWeights{YN}*obj.Y{YN-1} + obj.h*relu(obj.arrayWeights{YN},obj.Y{YN-1},obj.arrayBiases{YN},obj.igamma, false, obj.tm);
 
-            % TODO the end layer may be wrapt in the sigmoid function for 0-1 output range
             result = obj.Y{end};
 
         end
@@ -166,20 +165,21 @@ classdef AntiSymResNet < handle
         function trainingRes = train(obj, trainData, trainLabel, cycles, eta)
             [vecSize, numVecs] = size(trainData);
             costAvg = 0;
-            numSamples = 10000;
+            numSamples = 5000;
 
             for i = 1:cycles
                 randInd = randi(numVecs);
                 x = trainData(:, randInd);
                 c = trainLabel(:, randInd);
-                y = forwardProp(obj, x);
+                y = sigm(forwardProp(obj, x));     % wrap into sigmoid function for 0-1 range
                 backProp(obj, x, c, eta, true);
 
                 costAvg = costAvg + norm(c - y)^2;
 
                 if mod(i, numSamples) == 0
-                    costAvg = costAvg / numSamples;
-                    disp(['average cost over ', num2str(numSamples, '%0d'), ' samples: ', num2str(costAvg, '%0d')]);
+                    [sigm(forwardProp(obj, x)),c]     % wrap into sigmoid function for 0-1 range
+                    costAvg = costAvg / double(numSamples);
+                    disp(['average cost over ', num2str(numSamples, '%0d'), ' samples: ', num2str(costAvg, '%0.3f')]);
                     costAvg = 0;
                 end
 
@@ -225,9 +225,9 @@ function d = reluD(W, x, b, g, antisym, testmode)
         d = 1;    % this is for testing without max() operator
     elseif antisym == true
         [~,n] = size(W);
-        d = 0.5*(W - W' - g*eye(n))*x+b > 0;
+        d = 0.5*(W - W' - g*eye(n))*x + b > 0;
     else
-        d = W*x+b > 0;
+        d = W*x + b > 0;
     end
 end
 
