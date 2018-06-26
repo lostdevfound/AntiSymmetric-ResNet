@@ -102,12 +102,16 @@ classdef AntiSymResNet < handle
             obj.D{YN-1} = obj.arrayWeights{YN}' * (obj.D{YN}.*(ones(obj.outputLayerSize,1) + obj.h*reluD(obj.arrayWeights{YN},obj.Y{YN-1},obj.arrayBiases{YN}, obj.igamma, false, obj.tm)));
             obj.O{YN-1} = obj.h * reluD(obj.arrayWeights{YN-1}, obj.Y{YN-2}, obj.arrayBiases{YN-1}, obj.igamma, false, obj.tm) * obj.Y{YN-2}';
 
+            antisym = true;
             % Calculate error gradient for L-2, L-3,..., 2 layers
             for i = YN-2:-1:2
                 % Compute delta
                 obj.D{i} = obj.D{i+1} + obj.arrayWeights{i+1}'*( obj.D{i+1} .* (obj.h*reluD(obj.arrayWeights{i+1},obj.Y{i},obj.arrayBiases{i+1},obj.igamma,true,obj.tm)) );
                 % Compute omega
-                obj.O{i} = obj.h * reluD(obj.arrayWeights{i},obj.Y{i-1}, obj.arrayBiases{i},obj.igamma, true, obj.tm) * obj.Y{i-1}';
+                if i==2
+                    antisym = false;
+                end
+                obj.O{i} = obj.h * reluD(obj.arrayWeights{i},obj.Y{i-1}, obj.arrayBiases{i},obj.igamma, antisym, obj.tm) * obj.Y{i-1}';
             end
 
             % Compute gradient dC/dX
@@ -126,7 +130,7 @@ classdef AntiSymResNet < handle
                     obj.arrayBiases{i} = obj.arrayBiases{i} - eta* obj.h* obj.D{i} .* reluD(obj.arrayWeights{i}, obj.Y{i-1}, obj.arrayBiases{i}, obj.igamma, true, obj.tm);
                 end
 
-                dCdW_YN = obj.D{YN} .* (ones(obj.outputLayerSize,1) + obj.h * reluD(obj.arrayWeights{YN}, i_vector, obj.arrayBiases{YN}, obj.igamma, false, obj.tm))* obj.Y{YN-1}';
+                dCdW_YN = obj.D{YN} .* (ones(obj.outputLayerSize,1) + obj.h * reluD(obj.arrayWeights{YN}, obj.Y{YN-1}, obj.arrayBiases{YN}, obj.igamma, false, obj.tm))* obj.Y{YN-1}';
                 obj.arrayWeights{YN} = obj.arrayWeights{YN} - eta * dCdW_YN;
                 obj.arrayBiases{YN} = obj.arrayBiases{YN} - eta* obj.h* obj.D{YN} .* reluD(obj.arrayWeights{YN}, obj.Y{YN-1}, obj.arrayBiases{YN}, obj.igamma, false, obj.tm);
             end
@@ -161,13 +165,24 @@ classdef AntiSymResNet < handle
         % Training
         function trainingRes = train(obj, trainData, trainLabel, cycles, eta)
             [vecSize, numVecs] = size(trainData);
+            costAvg = 0;
+            numSamples = 10000;
 
             for i = 1:cycles
                 randInd = randi(numVecs);
                 x = trainData(:, randInd);
-                y = trainLabel(:, randInd);
-                forwardProp(obj, x);
-                backProp(obj, x, y, eta, true);
+                c = trainLabel(:, randInd);
+                y = forwardProp(obj, x);
+                backProp(obj, x, c, eta, true);
+
+                costAvg = costAvg + norm(c - y)^2;
+
+                if mod(i, numSamples) == 0
+                    costAvg = costAvg / numSamples;
+                    disp(['average cost over ', num2str(numSamples, '%0d'), ' samples: ', num2str(costAvg, '%0d')]);
+                    costAvg = 0;
+                end
+
             end
 
         end

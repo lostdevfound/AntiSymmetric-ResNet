@@ -7,10 +7,11 @@ clc;
 format long
 h = 0.1;
 igamma = 0.05;
+initScaler = 1;
 % Build NN with params: i_numHiddenLayers, i_inputLayerSize, i_outputLayerSize, i_hiddenLayersSize, igamma, h, initScaler, testmode
 % Here we set testmode=true to test gradients of the NN
 % for actual training testmode must be false
-net = AntiSymResNet(3, 5, 3, 3, igamma, h, 0.001, true);  %i_numHiddenLayers, i_inputLayerSize, i_outputLayerSize, i_hiddenLayersSize, igamma, h, initScaler
+net = AntiSymResNet(3, 5, 2, 3, igamma, h, initScaler, true);  %i_numHiddenLayers, i_inputLayerSize, i_outputLayerSize, i_hiddenLayersSize, igamma, h, initScaler, testmode
 
 syms x1 x2 x3 x4 x5 b1 b2 w1;
 
@@ -33,8 +34,8 @@ W3 = net.getWeights(3);
 
 W4 = net.getWeights(4);
 W5 = net.getWeights(5);
-wn1 = W5(3,1);
-W5 = [ W5(1,:); W5(2,:);w1, W5(3,2:3) ]
+wn1 = W5(2,3);
+W5 = [ W5(1,:); W5(2,1:2), w1;];
 
 
 b2 = net.getBias(2);
@@ -54,7 +55,7 @@ y4 = y3 + h*relu(z4);
 z5= W5*y4 + b5;
 y5 = W5*y4 + h*relu(z5);
 
-c = [0.1 0.5 0.2]';
+c = [0.1 0.5]';
 C = 1/2*norm(c - sigm(y5))^2;
 
 syms x1 x2 x3 x4 x5 b1 b2;
