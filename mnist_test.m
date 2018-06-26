@@ -10,10 +10,10 @@ trainCycles = 450000;       % default 400000
 eta = 0.0006;           % good default 0.0005
 initScaler = 0.07;
 
-load('resources/net_10_layer_h02_igamma03');    % Load pretrained AntiSymResNet
+load('resources/net_20_layer_h007_igamma03');    % Load pretrained AntiSymResNet
 
 % Set to true if need to retrain
-first_time_launch = true;
+first_time_launch = false;
 doPerturbation = true;
 
 
