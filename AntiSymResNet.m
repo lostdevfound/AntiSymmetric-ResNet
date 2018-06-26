@@ -21,7 +21,7 @@ classdef AntiSymResNet < handle
     end
 
     methods
-        function obj = AntiSymResNet(i_numHiddenLayers, i_inputLayerSize, i_outputLayerSize, i_hiddenLayersSize, igamma, h, initScaler, i_testMode)
+        function obj = AntiSymResNet(i_numHiddenLayers, i_inputLayerSize, i_outputLayerSize, i_hiddenLayersSize, i_gamma, h, initScaler, i_testMode)
             % AntiSymResNet constructor
             obj.tm = i_testMode;
             obj.numHiddenLayers = i_numHiddenLayers;
@@ -31,7 +31,7 @@ classdef AntiSymResNet < handle
             obj.totalNumLayers = i_numHiddenLayers + 2;
             obj.initScaler = initScaler;
             obj.h = h;
-
+            obj.igamma = i_gamma;
             % Init arrays
             obj.D{1} = 0;   % Array of gradients dC/dY
             obj.O{1} = 0;   % Array of Omega gradients dY_i^(l)/dW_ij^(l)
@@ -47,13 +47,13 @@ classdef AntiSymResNet < handle
             obj.arrayWeights{2} = W2;
             obj.arrayBiases{2} = b2;
 
-            gammaMatrix = igamma*eye(obj.hiddenLayersSize );
+            gammaMatrix = obj.igamma*eye(obj.hiddenLayersSize );
 
             % Build intermediate W and b
             for i = 3:obj.totalNumLayers - 1   % do not build W and b from last hidden layer to output layer
                 K = obj.initScaler*rand(obj.hiddenLayersSize, obj.hiddenLayersSize);
                 b = obj.initScaler*rand(obj.hiddenLayersSize,1);
-                % make W anti-symmetric and add gamma diffusion by substracting gammaMatrix
+                % make W anti-symmetric and add igamma diffusion by substracting gammaMatrix
                 W = 0.5*(K - K'- gammaMatrix);
                 obj.arrayWeights{i} = W;
                 obj.arrayBiases{i} = b;
@@ -72,15 +72,15 @@ classdef AntiSymResNet < handle
             % Forward propagation
             YN = obj.totalNumLayers;
             % relu first hidden layer
-            obj.Y{2} = obj.arrayWeights{2}*i_vector + obj.h*relu(obj.arrayWeights{2},i_vector,obj.arrayBiases{2}, obj.tm);
+            obj.Y{2} = obj.arrayWeights{2}*i_vector + obj.h*relu(obj.arrayWeights{2},i_vector,obj.arrayBiases{2},obj.igamma, false, obj.tm);
             % obj.Y{2} = i_vector + obj.h*relu(obj.arrayWeights{2},i_vector,obj.arrayBiases{2});
 
             % relu other consequent layers plus output layer
             for i = 3:YN - 1
-                obj.Y{i} = obj.Y{i-1} + obj.h*relu(obj.arrayWeights{i},obj.Y{i-1},obj.arrayBiases{i}, obj.tm);
+                obj.Y{i} = obj.Y{i-1} + obj.h*relu(obj.arrayWeights{i},obj.Y{i-1},obj.arrayBiases{i},obj.igamma, true, obj.tm);
             end
 
-            obj.Y{YN} = obj.arrayWeights{YN}*obj.Y{YN-1} + obj.h*relu(obj.arrayWeights{YN},obj.Y{YN-1},obj.arrayBiases{YN}, obj.tm);
+            obj.Y{YN} = obj.arrayWeights{YN}*obj.Y{YN-1} + obj.h*relu(obj.arrayWeights{YN},obj.Y{YN-1},obj.arrayBiases{YN},obj.igamma, false, obj.tm);
 
             % TODO the end layer may be wrapt in the sigmoid function for 0-1 output range
             result = obj.Y{end};
@@ -97,35 +97,38 @@ classdef AntiSymResNet < handle
             obj.D{YN} = (sigm(obj.Y{YN}) - label_vector) .* sigmD(obj.Y{YN});
 
             % Calculate the last layer weights gradient dY_i^(l)/dW_ij^(l)
-            obj.O{YN} = ones(obj.outputLayerSize,1)*obj.Y{YN-1}' + obj.h*reluD(obj.arrayWeights{YN},obj.Y{YN-1},obj.arrayBiases{YN},obj.tm)*obj.Y{YN-1}';
+            obj.O{YN} = ones(obj.outputLayerSize,1)*obj.Y{YN-1}' + obj.h*reluD(obj.arrayWeights{YN},obj.Y{YN-1},obj.arrayBiases{YN}, obj.igamma,false,obj.tm)*obj.Y{YN-1}';
             % Calculate YN-1 layer gradient
-            obj.D{YN-1} = obj.arrayWeights{YN}' * (obj.D{YN}.*(ones(obj.outputLayerSize,1) + obj.h*reluD(obj.arrayWeights{YN},obj.Y{YN-1},obj.arrayBiases{YN},obj.tm)));
-            obj.O{YN-1} = obj.h * reluD(obj.arrayWeights{YN-1},obj.Y{YN-2},obj.arrayBiases{YN-1},obj.tm) * obj.Y{YN-2}';
+            obj.D{YN-1} = obj.arrayWeights{YN}' * (obj.D{YN}.*(ones(obj.outputLayerSize,1) + obj.h*reluD(obj.arrayWeights{YN},obj.Y{YN-1},obj.arrayBiases{YN}, obj.igamma, false, obj.tm)));
+            obj.O{YN-1} = obj.h * reluD(obj.arrayWeights{YN-1}, obj.Y{YN-2}, obj.arrayBiases{YN-1}, obj.igamma, false, obj.tm) * obj.Y{YN-2}';
+
             % Calculate error gradient for L-2, L-3,..., 2 layers
             for i = YN-2:-1:2
                 % Compute delta
-                obj.D{i} = obj.D{i+1} + obj.arrayWeights{i+1}'*( obj.D{i+1} .* (obj.h*reluD(obj.arrayWeights{i+1},obj.Y{i},obj.arrayBiases{i+1},obj.tm)) );
+                obj.D{i} = obj.D{i+1} + obj.arrayWeights{i+1}'*( obj.D{i+1} .* (obj.h*reluD(obj.arrayWeights{i+1},obj.Y{i},obj.arrayBiases{i+1},obj.igamma,true,obj.tm)) );
                 % Compute omega
-                obj.O{i} = obj.h * reluD(obj.arrayWeights{i},obj.Y{i-1},obj.arrayBiases{i},obj.tm) * obj.Y{i-1}';
+                obj.O{i} = obj.h * reluD(obj.arrayWeights{i},obj.Y{i-1}, obj.arrayBiases{i},obj.igamma, true, obj.tm) * obj.Y{i-1}';
             end
 
             % Compute gradient dC/dX
-            obj.D{1} = obj.arrayWeights{2}' * (obj.D{2} .* (ones(obj.hiddenLayersSize,1) + obj.h*reluD(obj.arrayWeights{2},i_vector,obj.arrayBiases{2},obj.tm)));
+            obj.D{1} = obj.arrayWeights{2}' * (obj.D{2} .* (ones(obj.hiddenLayersSize,1) + obj.h*reluD(obj.arrayWeights{2},i_vector,obj.arrayBiases{2}, obj.igamma, false, obj.tm)));
 
             backresult = obj.D{1};  % return dC/dX
 
             if updateWeights == true
                 % Gradient step. Update weights and biases
-                obj.arrayWeights{2} = obj.arrayWeights{2} - eta * diag(obj.D{2})*obj.O{2};
-                obj.arrayBiases{2} = obj.arrayBiases{2} - eta* obj.h* obj.D{2} .* reluD(obj.arrayWeights{2},i_vector,obj.arrayBiases{2},obj.tm);
+                dCdW_2 = obj.D{2} .* (ones(obj.hiddenLayersSize,1) + obj.h * reluD(obj.arrayWeights{2}, i_vector, obj.arrayBiases{2},obj.igamma, false, obj.tm))* i_vector';
+                obj.arrayWeights{2} = obj.arrayWeights{2} - eta * dCdW_2;
+                obj.arrayBiases{2} = obj.arrayBiases{2} - eta* obj.h* obj.D{2} .* reluD(obj.arrayWeights{2}, i_vector,obj.arrayBiases{2}, obj.igamma, false, obj.tm);
 
                 for i = 3:YN-1
                     obj.arrayWeights{i} = obj.arrayWeights{i} - eta * 0.5*(diag(obj.D{i})*obj.O{i} - (diag(obj.D{i})*obj.O{i})');
-                    obj.arrayBiases{i} = obj.arrayBiases{i} - eta* obj.h* obj.D{i} .* reluD(obj.arrayWeights{i},obj.Y{i-1},obj.arrayBiases{i},obj.tm);
+                    obj.arrayBiases{i} = obj.arrayBiases{i} - eta* obj.h* obj.D{i} .* reluD(obj.arrayWeights{i}, obj.Y{i-1}, obj.arrayBiases{i}, obj.igamma, true, obj.tm);
                 end
-                obj.arrayWeights{YN} = obj.arrayWeights{YN} - eta * diag(obj.D{YN})*obj.O{YN};
-                obj.arrayBiases{YN} = obj.arrayBiases{YN} - eta* obj.h* obj.D{YN} .* reluD(obj.arrayWeights{YN},obj.Y{YN-1},obj.arrayBiases{YN},obj.tm);
 
+                dCdW_YN = obj.D{YN} .* (ones(obj.outputLayerSize,1) + obj.h * reluD(obj.arrayWeights{YN}, i_vector, obj.arrayBiases{YN}, obj.igamma, false, obj.tm))* obj.Y{YN-1}';
+                obj.arrayWeights{YN} = obj.arrayWeights{YN} - eta * dCdW_YN;
+                obj.arrayBiases{YN} = obj.arrayBiases{YN} - eta* obj.h* obj.D{YN} .* reluD(obj.arrayWeights{YN}, obj.Y{YN-1}, obj.arrayBiases{YN}, obj.igamma, false, obj.tm);
             end
         end
 
@@ -135,14 +138,14 @@ classdef AntiSymResNet < handle
             YN = obj.totalNumLayers;
 
             % Calculate the last layer gradient dY_i^(l)/dY_j^(l-1)
-            obj.DY{YN-1} = obj.arrayWeights{YN} .* (ones(obj.outputLayerSize,1) + obj.h*reluD(obj.arrayWeights{YN},obj.Y{YN-1},obj.arrayBiases{YN},obj.tm));
+            obj.DY{YN-1} = obj.arrayWeights{YN} .* (ones(obj.outputLayerSize,1) + obj.h*reluD(obj.arrayWeights{YN}, obj.Y{YN-1}, obj.arrayBiases{YN}, obj.igamma, false, obj.tm));
 
             % Calculate the L-1, L-2, ... , 2 layer gradients
             for i = YN-2:-1:2
-                obj.DY{i} = obj.DY{i+1} + obj.DY{i+1} * (obj.arrayWeights{i+1}.*obj.h*reluD(obj.arrayWeights{i+1},obj.Y{i},obj.arrayBiases{i+1},obj.tm));
+                obj.DY{i} = obj.DY{i+1} + obj.DY{i+1} * (obj.arrayWeights{i+1}.*obj.h*reluD(obj.arrayWeights{i+1}, obj.Y{i}, obj.arrayBiases{i+1}, obj.igamma, true, obj.tm));
             end
 
-            obj.DY{1} = obj.DY{2} * obj.arrayWeights{2} + obj.DY{2} * (obj.arrayWeights{2} .* ( obj.h*reluD(obj.arrayWeights{2}, i_vector, obj.arrayBiases{2},obj.tm)) );
+            obj.DY{1} = obj.DY{2} * obj.arrayWeights{2} + obj.DY{2} * (obj.arrayWeights{2} .* ( obj.h*reluD(obj.arrayWeights{2}, i_vector, obj.arrayBiases{2}, obj.igamma,false, obj.tm)) );
             dYdX = obj.DY{1};
         end
 
@@ -186,20 +189,28 @@ classdef AntiSymResNet < handle
 end
 
 
-function y = relu(W,x,b, testmode)
+function y = relu(W, x, b, g, antisym, testmode)
 % ReLu activation fucntion
+    [~,n] = size(W);
 
-    if testmode == true
+    if testmode == true & antisym == true
+        y = 0.5*(W - W' - g*eye(n))*x+b;    % this is for testing without max() operator
+    elseif testmode == true & antisym == false
         y = W*x+b;    % this is for testing without max() operator
+    elseif antisym == true
+        y = max(0, 0.5*(W - W' - g*eye(n))*x+b);
     else
         y = max(0, W*x+b);
     end
 end
 
-function d = reluD(W,x,b,testmode)
+function d = reluD(W, x, b, g, antisym, testmode)
     % reluD derivative of the ReLu function
     if testmode == true
         d = 1;    % this is for testing without max() operator
+    elseif antisym == true
+        [~,n] = size(W);
+        d = 0.5*(W - W' - g*eye(n))*x+b > 0;
     else
         d = W*x+b > 0;
     end
