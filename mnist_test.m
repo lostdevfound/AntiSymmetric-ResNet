@@ -4,32 +4,52 @@ clc;
 [trainImages,trainLabels, validatimages, validatLabels] = loadMNIST('mnist/train-images.idx3-ubyte', 'mnist/train-labels.idx1-ubyte','mnist/t10k-images.idx3-ubyte','mnist/t10k-labels.idx1-ubyte');
 
 % Setup NN's params
-h = 0.4;        % default 0.7
-igamma = 0.1;       % default 0.1
-trainCycles = 850000;       % default 400000
-eta = 0.0004;           % good default 0.0005
+h = 0.2;        % default 0.7
+igamma = 0.02;       % default 0.1
+trainCycles = 400000;       % default 400000
+eta = 0.0035;           % good default 0.0005 or 0.003
 initScaler = 0.07;
+neurons = 50;
+layers = 10;
 
-load('resources/net_20_layer_h04_igamma01');    % Load pretrained AntiSymResNet
+% Define different params for several NNs
+numNets = 13;
+listLayers =  [2,    2,   3,   3,    5,    10,  10,  10,   10,  20,   20,   30,  30];
+listH =       [0.8, .35,  .3,  .8,   .25,  .2,  .6,  .8,   1,   .4,   .8,   .05,  0.5];
+listNeurons = [100,  100, 100, 100,  50,   20,  20,  20,   20,  20,   20,   15,  15];
 
 % Set to true if need to retrain
-first_time_launch = false;
-doPerturbation = true;
+first_time_launch = true;
+doPerturbation = false;
 
+% Create multiple neural nets with different params
+for i=8:numNets
 
-% Training part.
-if first_time_launch == true
-    % Init NN and train it
-    net = AntiSymResNet(20, 784, 10, 15, igamma, h, initScaler, false);
-    disp('training...');
-    net.train(trainImages, trainLabels, trainCycles, eta);      % fast but not accurate training
-    disp('training complete.');
-    save 'net_xx_layer_hxx_igammaxx.mat' net;
+    layers = listLayers(i);
+    neurons = listNeurons(i);
+    h = listH(i);
+
+    % Training part.
+    if first_time_launch == true
+
+        % Init NN and train it
+        net = AntiSymResNet(layers, 784, 10, neurons, igamma, h, initScaler, false);
+        disp('training...');
+        net.train(trainImages, trainLabels, trainCycles, eta);
+        disp('training complete.');
+
+        % Save trained net
+        netStr = {'net_l', num2str(layers), '_h', num2str(h), '_ig', num2str(igamma), '_n', num2str(neurons), '.mat','resources/'};
+        str = strcat(netStr{10},netStr{1},netStr{2},netStr{3},netStr{4},netStr{5},netStr{6},netStr{7},netStr{8}, netStr{9});
+        net.name = strcat(netStr{1},netStr{2},netStr{3},netStr{4},netStr{5},netStr{6},netStr{7},netStr{8}, netStr{9});
+        save(str,'net');
+    else
+        load('resources/net_l20_h0.1_ig0.02_n20.mat');    % Load pretrained AntiSymResNet
+    end
 end
 
-
 % Pick image then forwardProp image and print result in the console.
-index = 55;     % Pick some image by its index (digit 3 is index 33)
+index = 789;     % Pick some image by its index (digit 3 is index 33)
 testImg =  validatimages(:,index);
 [~,digitNumber] = max(validatLabels(:,index))
 perturbedImg = testImg;
@@ -39,19 +59,24 @@ noisyImg = min(testImg + 0.5*rand(784,1), 1);   % limit the range from 0 to 1
 
 % Perturbation generation
 disp('working...');
-while classifRes(digitNumber) > 0.5 && doPerturbation == true
-% for i=1:500000
+while classifRes(digitNumber) > 0 && doPerturbation == true
     net.forwardProp(perturbedImg);
-    perturbedImg = net.adversBackProp(perturbedImg,validatLabels(:,index), 0.1);
+    perturbedImg = net.adversBackProp(perturbedImg,validatLabels(:,index), 0.9);
     classifRes = sigm(net.forwardProp(perturbedImg));
-    classifRes(digitNumber);
+
+    [prediction,maxInd] = max(classifRes);
+    % Break if correct classif index is not max
+    if maxInd ~= digitNumber
+        break;
+    end
 end
+normOfPerturbation = norm(perturbedImg - testImg)
 
 % Classify images
-classificationResultPerturb = sigm(net.forwardProp(perturbedImg))
-classificationResultOrig = sigm(net.forwardProp(testImg))
-classificationResultNoisy = sigm(net.forwardProp(noisyImg))
-normOfPerturbation = norm(perturbedImg - testImg)
+classificationResultPerturb = sigm(net.forwardProp(perturbedImg));
+classificationResultOrig = sigm(net.forwardProp(testImg));
+classificationResultNoisy = sigm(net.forwardProp(noisyImg));
+results = [classificationResultPerturb, classificationResultOrig,classificationResultNoisy]
 
 % Didsplay picked image
 figure;

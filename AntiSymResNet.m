@@ -3,8 +3,10 @@
 classdef AntiSymResNet < handle
 % Anti-Symmetric ResNet class
     properties
+        name;   % some str value
         tm;     % testmode, this param is used for testing gradients of the NN
         h;
+        hIO;    % h value for W_2 and W_YN, this var is needed for NN that was interpolated
         igamma;
         initScaler;
         numHiddenLayers;
@@ -31,6 +33,7 @@ classdef AntiSymResNet < handle
             obj.totalNumLayers = i_numHiddenLayers + 2;
             obj.initScaler = initScaler;
             obj.h = h;
+            obj.hIO = h;
             obj.igamma = i_gamma;
             % Init arrays
             obj.D{1} = 0;   % Array of gradients dC/dY
@@ -71,16 +74,18 @@ classdef AntiSymResNet < handle
         function result = forwardProp(obj, i_vector)
             % Forward propagation
             YN = obj.totalNumLayers;
+
             % relu first hidden layer
-            obj.Y{2} = obj.arrayWeights{2}*i_vector + obj.h*relu(obj.arrayWeights{2},i_vector,obj.arrayBiases{2},obj.igamma, obj.tm);
+            obj.Y{2} = obj.arrayWeights{2}*i_vector + obj.hIO*relu(obj.arrayWeights{2},i_vector,obj.arrayBiases{2},obj.igamma, obj.tm);
             % obj.Y{2} = i_vector + obj.h*relu(obj.arrayWeights{2},i_vector,obj.arrayBiases{2});
 
-            % relu other consequent layers plus output layer
+            % relu other consequent layers
             for i = 3:YN - 1
                 obj.Y{i} = obj.Y{i-1} + obj.h*relu(obj.arrayWeights{i},obj.Y{i-1},obj.arrayBiases{i},obj.igamma, obj.tm);
             end
 
-            obj.Y{YN} = obj.arrayWeights{YN}*obj.Y{YN-1} + obj.h*relu(obj.arrayWeights{YN},obj.Y{YN-1},obj.arrayBiases{YN},obj.igamma, obj.tm);
+            % relu last layer
+            obj.Y{YN} = obj.arrayWeights{YN}*obj.Y{YN-1} + obj.hIO*relu(obj.arrayWeights{YN},obj.Y{YN-1},obj.arrayBiases{YN},obj.igamma, obj.tm);
 
             result = obj.Y{end};
 
@@ -164,6 +169,14 @@ classdef AntiSymResNet < handle
             numSamples = 5000;
 
             for i = 1:cycles
+
+                progress = 100*i / cycles;
+
+                % Lower eta when progress is over 60%
+                if progress > 40
+                    eta = eta / 20;
+                end
+
                 randInd = randi(numVecs);
                 x = trainData(:, randInd);
                 c = trainLabel(:, randInd);
@@ -173,10 +186,10 @@ classdef AntiSymResNet < handle
                 costAvg = costAvg + norm(c - y)^2;
 
                 if mod(i, numSamples) == 0
-                    progress = i / cycles;
                     [sigm(forwardProp(obj, x)),c]     % wrap into sigmoid function for 0-1 range
                     costAvg = costAvg / double(numSamples);
-                    disp(['average cost over ', num2str(numSamples, '%0d'),' samples: ', num2str(costAvg, '%0.3f'),' progress: ', num2str(progress, '%0d')]);
+                    disp(['average cost over ', num2str(numSamples, '%0d'),' samples: ', num2str(costAvg, '%0.3f'),' progress: ', num2str(progress)]);
+                    gradNorms = obj.gradientNorms()
                     costAvg = 0;
                 end
 
@@ -197,6 +210,13 @@ classdef AntiSymResNet < handle
             bias = obj.arrayBiases(id);
             bias = bias{1};
         end
+
+        function normsVec = gradientNorms(obj)
+
+            for i = obj.totalNumLayers - 1:-1:2
+                normsVec(i) = norm(obj.D{i});
+            end
+        end
     end
 end
 
@@ -214,13 +234,14 @@ end
 
 function d = reluD(W, x, b, g, testmode)
     % reluD derivative of the ReLu function
-    leak = 0.1;
+    leak = 0.01;
 
     if testmode == true
         d = 1;    % this is for testing without max() operator
     else
-        d = W*x + b > 0;
-        d(d==0) = leak;
+        z = W*x + b;
+        d = z > 0;
+        d(d==0) = leak*z(z<0);
     end
 end
 
