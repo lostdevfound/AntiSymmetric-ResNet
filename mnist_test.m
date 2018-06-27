@@ -10,10 +10,10 @@ trainCycles = 850000;       % default 400000
 eta = 0.0004;           % good default 0.0005
 initScaler = 0.07;
 
-% load('resources/net_20_layer_h01_igamma03');    % Load pretrained AntiSymResNet
+load('resources/net_20_layer_h04_igamma01');    % Load pretrained AntiSymResNet
 
 % Set to true if need to retrain
-first_time_launch = true;
+first_time_launch = false;
 doPerturbation = true;
 
 
@@ -24,18 +24,18 @@ if first_time_launch == true
     disp('training...');
     net.train(trainImages, trainLabels, trainCycles, eta);      % fast but not accurate training
     disp('training complete.');
+    save 'net_xx_layer_hxx_igammaxx.mat' net;
 end
 
-save 'net_20_layer_h04_igamma01.mat' net;
 
 % Pick image then forwardProp image and print result in the console.
-index = 99;     % Pick some image by its index (digit 3 is index 33)
+index = 55;     % Pick some image by its index (digit 3 is index 33)
 testImg =  validatimages(:,index);
 [~,digitNumber] = max(validatLabels(:,index))
 perturbedImg = testImg;
 classifRes = ones(10,1);
 
-noisyImg = min(testImg + 0.3*rand(784,1), 1);   % limit the range from 0 to 1
+noisyImg = min(testImg + 0.5*rand(784,1), 1);   % limit the range from 0 to 1
 
 % Perturbation generation
 disp('working...');
@@ -64,7 +64,6 @@ subplot(1,3,2);
 digitOrig = reshape(testImg, [28,28]);    % row = 28 x 28 image
 imshow(digitOrig*255,[0 255])      % show the image
 title('original');
-norm(perturbedImg -testImg)
 
 subplot(1,3,3);
 digitNoise = reshape(noisyImg, [28,28]);    % row = 28 x 28 image
