@@ -15,15 +15,15 @@ layers = 10;
 % Define different params for several NNs
 numNets = 13;
 listLayers =  [2,    2,   3,   3,    5,    10,  10,  10,   10,  20,   20,   30,  30];
-listH =       [0.8, .35,  .3,  .8,   .25,  .2,  .6,  .8,   1,   .4,   .8,   .05,  0.5];
+listH =       [0.8, .35,  .3,  .8,   .25,  .2,  .6,  .8,   1,   .4,   .8,   .05,  0.1];
 listNeurons = [100,  100, 100, 100,  50,   20,  20,  20,   20,  20,   20,   15,  15];
 
 % Set to true if need to retrain
-first_time_launch = true;
-doPerturbation = false;
+first_time_launch = false;
+doPerturbation = true;
 
 % Create multiple neural nets with different params
-for i=8:numNets
+for i=13:numNets
 
     layers = listLayers(i);
     neurons = listNeurons(i);
@@ -44,12 +44,12 @@ for i=8:numNets
         net.name = strcat(netStr{1},netStr{2},netStr{3},netStr{4},netStr{5},netStr{6},netStr{7},netStr{8}, netStr{9});
         save(str,'net');
     else
-        load('resources/net_l20_h0.1_ig0.02_n20.mat');    % Load pretrained AntiSymResNet
+        load('resources/net_l30_h0.05_ig0.02_n15.mat');    % Load pretrained AntiSymResNet
     end
 end
 
 % Pick image then forwardProp image and print result in the console.
-index = 789;     % Pick some image by its index (digit 3 is index 33)
+index = 45;     % Pick some image by its index (digit 3 is index 33)
 testImg =  validatimages(:,index);
 [~,digitNumber] = max(validatLabels(:,index))
 perturbedImg = testImg;

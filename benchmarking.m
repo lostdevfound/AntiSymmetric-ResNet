@@ -5,7 +5,7 @@
 clear;
 [trainImages,trainLabels, validatimages, validatLabels] = loadMNIST('mnist/train-images.idx3-ubyte', 'mnist/train-labels.idx1-ubyte','mnist/t10k-images.idx3-ubyte','mnist/t10k-labels.idx1-ubyte');
 
-load('resources/net_l10_h0.6_ig0.02_n20.mat')   % Load pretrained AntiSymResNet
+load('resources/net_l30_h0.05_ig0.02_n15.mat')   % Load pretrained AntiSymResNet
 
 
 % Training and Validation costs and errors

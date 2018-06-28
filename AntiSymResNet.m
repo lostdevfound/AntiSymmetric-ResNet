@@ -239,9 +239,8 @@ function d = reluD(W, x, b, g, testmode)
     if testmode == true
         d = 1;    % this is for testing without max() operator
     else
-        z = W*x + b;
-        d = z > 0;
-        d(d==0) = leak*z(z<0);
+        d = W*x + b > 0;
+        d(d==0) = leak;
     end
 end
 
