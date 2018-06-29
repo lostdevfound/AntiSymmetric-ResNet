@@ -5,7 +5,7 @@
 clear;
 [trainImages,trainLabels, validatimages, validatLabels] = loadMNIST('mnist/train-images.idx3-ubyte', 'mnist/train-labels.idx1-ubyte','mnist/t10k-images.idx3-ubyte','mnist/t10k-labels.idx1-ubyte');
 
-load('resources/net_l30_h0.05_ig0.02_n15.mat')   % Load pretrained AntiSymResNet
+load('resources/net_l4_h0.4_ig0.01_n15.mat')   % Load pretrained AntiSymResNet
 
 
 % Training and Validation costs and errors
@@ -13,8 +13,8 @@ trainingCost = 0;
 generalizationCost = 0;
 trainingError = 0;
 validationError = 0;
-upperBound = 0.55;      % def for toynet 0.95
-lowerBound = 0.1;       % def for toynet 0.2
+upperBound = 0.95;      % def for toynet 0.95
+lowerBound = 0.2;       % def for toynet 0.2
 disp('benchmarking running...');
 
 

@@ -25,6 +25,11 @@ x5 = 0.2;
 
 
 W2 = net.getWeights(2);
+W2lin = net.W2_lin;
+
+% wn1 = W2lin(3,5);
+% W2lin = [ W2lin(1,:); W2lin(2,:); W2lin(3,1:4), w1 ]
+
 % wn1 = W2(3,5);
 % W2 = [ W2(1,:); W2(2,:); W2(3,1:4), w1 ]
 
@@ -34,8 +39,11 @@ W3 = net.getWeights(3);
 
 W4 = net.getWeights(4);
 W5 = net.getWeights(5);
-wn1 = W5(2,3);
-W5 = [ W5(1,:); W5(2,1:2), w1;];
+% wn1 = W5(2,3);
+% W5 = [ W5(1,:); W5(2,1:2), w1;];
+W5lin = net.WYN_lin;
+wn1 = W5lin(2,3);
+W5lin = [ W5lin(1,:); W5lin(2,1:2), w1;];
 
 
 b2 = net.getBias(2);
@@ -44,7 +52,7 @@ b4 = net.getBias(4);
 b5 = net.getBias(5);
 
 z2 = W2*x + b2;
-y2 = W2*x + h*relu(z2);
+y2 = W2lin*x + h*relu(z2);
 
 z3 = 0.5*(W3 - W3' - igamma*eye(3))*y2 + b3;
 y3 = y2 + h*relu(z3);
@@ -53,7 +61,7 @@ z4 = 0.5*(W4 - W4' - igamma*eye(3))*y3 + b4;
 y4 = y3 + h*relu(z4);
 
 z5= W5*y4 + b5;
-y5 = W5*y4 + h*relu(z5);
+y5 = W5lin*y4 + h*relu(z5);
 
 c = [0.1 0.5]';
 C = 1/2*norm(c - sigm(y5))^2;
