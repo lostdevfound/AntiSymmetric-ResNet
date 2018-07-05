@@ -10,7 +10,7 @@ validMean = mean(validatimages(:,1:end),2);
 trainImages = trainImages - trainMean;
 validatimages = validatimages - validMean;
 
-load('resources/softmax_net_l5_h0.4_ig0_n70.mat')   % Load pretrained AntiSymResNet
+load('resources/antisym_net_l5_h0.4_ig0.1_n70_r0.2.mat')   % Load pretrained AntiSymResNet
 
 
 % Training and Validation costs and errors
