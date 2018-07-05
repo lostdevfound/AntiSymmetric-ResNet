@@ -1,1 +1,1 @@
-# AntiSymmetric-ResNet
+# ResNet and Anti-symmetric ResNet
