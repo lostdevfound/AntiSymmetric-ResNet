@@ -9,22 +9,19 @@ trainImages = trainImages - trainMean;
 validatimages = validatimages - validMean;
 
 % Setup NN's params
-h = 0.4;        % default 0.7
+h = 1;        % default 0.7
 igamma = 0;       % default 0.1
-trainCycles = 500000;       % default 400000
+trainCycles = 100000;       % default 100000
 eta = 0.002;           % good default 0.0005 or 0.003
-initScaler = 0.01;      % default 0.05
-neurons = 70;
-layers = 5;
-
-% Define different params for several NNs
-% numNets = 13;
-% listLayers =  [2,    2,   3,   3,    5,    10,  10,  10,   10,  20,   20,   30,  30];
-% listH =       [0.8, .35,  .3,  .8,   .25,  .2,  .6,  .8,   1,   .4,   .8,   .05,  0.1];
-% listNeurons = [100,  100, 100, 100,  50,   20,  20,  20,   20,  20,   20,   15,  15];
-
+initScaler = 0.01;      % default 0.01
+n = 20;     %neurons
+layers = 2;
+activ = 'cosf';
+p = -0.2;
+s = 7;
+r = 0.003;
 % Set to true if need to retrain
-first_time_launch = false;
+first_time_launch = true;
 doPerturbation = true;
 
 % Create multiple neural nets with different params
@@ -37,18 +34,23 @@ doPerturbation = true;
     % Training part.
     if first_time_launch == true
         % Init NN and train it
-        net = ResNetSoftMax(layers, 784, 10, neurons, igamma, h, initScaler, false);
+        net = ResNetCustom(layers, 784, 10, n, igamma, h, initScaler, false, activ, p, s, r);
         disp('training...');
         net.train(trainImages, trainLabels, trainCycles, eta);
         disp('training complete.');
 
         % Save trained net
-        netStr = {'softmax_net_l', num2str(layers), '_h', num2str(h), '_ig', num2str(igamma), '_n', num2str(neurons), '.mat','resources/'};
-        str = strcat(netStr{10},netStr{1},netStr{2},netStr{3},netStr{4},netStr{5},netStr{6},netStr{7},netStr{8}, netStr{9});
-        net.name = strcat(netStr{1},netStr{2},netStr{3},netStr{4},netStr{5},netStr{6},netStr{7},netStr{8}, netStr{9});
-        save(str,'net');
+        netStr = {'resources/', activ, '_net_l', num2str(layers), '_h', num2str(h), '_n', num2str(n), '_p', num2str(p), '_s', num2str(s), '_r', num2str(r),'.mat'};
+        [~,numNames] = size(netStr);
+
+        str = '';
+        for i=1:numNames
+            str = strcat(str,netStr(i));
+        end
+
+        save(str{1},'net');
     else
-        load('resources/softmax_net_l5_h0.4_ig0_n70.mat');    % Load pretrained AntiSymResNet
+        load('resources/powerlog_net_l2_h1_n20_p4.5_s2_r0.003.mat');    % Load pretrained AntiSymResNet
     end
 % end
 
@@ -57,8 +59,8 @@ doPerturbation = true;
 %              Perturbation part
 %
 normSum = 0;
-samples = 0;
-offset=43;
+samples = 50;
+offset=1;
 
 for k = offset:offset + samples
     % Pick image then forwardProp image and print result in the console.
@@ -73,11 +75,11 @@ for k = offset:offset + samples
 
     % Perturbation generation
     count = 0;
-    breakCount = 5000;
+    breakCount = 10000;
 
     while classifRes(digitNumber) > 0 && doPerturbation == true
         net.forwardProp(perturbedImg);
-        perturbedImg = net.adversBackProp(perturbedImg,validatLabels(:,index), 0.01);
+        perturbedImg = net.adversBackProp(perturbedImg,validatLabels(:,index), 0.02);   % def 0.02
         classifRes = softmax(net.forwardProp(perturbedImg));
 
         [prediction,maxInd] = max(classifRes);
@@ -87,14 +89,14 @@ for k = offset:offset + samples
             disp('fooled');
             break;
 
-        elseif count > breakCount || (maxInd == digitNumber && classifRes(maxInd) == 1.0)
+        elseif count > breakCount
             perturbedImg = testImg;
             samples = samples -1;
             disp('breaking...........');disp('sample number:');disp(k);
             [classifRes',validatLabels(:,index)]
             break;
         end
-        
+
         count = count + 1;
     end
 %     absNormOfPerturbation = norm(perturbedImg - testImg)
@@ -108,7 +110,7 @@ RelativeAvgNorm = normSum/(samples+1)
 classificationResultPerturb = softmax(net.forwardProp(perturbedImg))';
 classificationResultOrig = softmax(net.forwardProp(testImg))';
 classificationResultNoisy = softmax(net.forwardProp(noisyImg))';
-% results = [classificationResultPerturb, classificationResultOrig, classificationResultNoisy]
+results = [classificationResultPerturb, classificationResultOrig, classificationResultNoisy]
 
 % Didsplay picked image
 figure;

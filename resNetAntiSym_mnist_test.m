@@ -48,7 +48,7 @@ doPerturbation = true;
         net.name = strcat(netStr{1},netStr{2},netStr{3},netStr{4},netStr{5},netStr{6},netStr{7},netStr{8}, netStr{9}, netStr{10});
         save(str,'net');
     else
-        load('resources/antisym_net_l5_h0.4_ig0.1_n70_r0.2.mat');    % Load pretrained AntiSymResNet
+        load('resources/antisym_net_l5_h0.4_ig0.1_n70_r0.1.mat');    % Load pretrained AntiSymResNet
     end
 % end
 
@@ -57,8 +57,8 @@ doPerturbation = true;
 %              Perturbation part
 %
 normSum = 0;
-samples = 100;
-offset=15;
+samples = 0;
+offset=43;
 
 for k = offset:offset + samples
     % Pick image then forwardProp image and print result in the console.
@@ -77,7 +77,7 @@ for k = offset:offset + samples
 
     while doPerturbation == true
         net.forwardProp(perturbedImg);
-        perturbedImg = net.adversBackProp(perturbedImg,validatLabels(:,index), 0.5);
+        perturbedImg = net.adversBackProp(perturbedImg,validatLabels(:,index), 0.01);
         classifRes = softmax(net.forwardProp(perturbedImg));
 
         [prediction,maxInd] = max(classifRes);

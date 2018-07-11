@@ -48,15 +48,9 @@ classdef ResNetAntiSymODE < handle
             obj.D{2} = zeros(obj.hiddenLayersSize, 1);    % init array D as vector with all enries 0
 
             gammaMatrix = obj.igamma * eye(obj.hiddenLayersSize);
-            % Build second layer weights which are anti-symmetric
-            K = obj.initScaler * normrnd(0,1,[obj.hiddenLayersSize, obj.hiddenLayersSize]);
-            W2 = 0.5 * (K - K' - gammaMatrix);
-            b2 = obj.initScaler * normrnd(0,1,[obj.hiddenLayersSize,1]);
-            obj.W{2} = W2;
-            obj.b{2} = b2;
 
             % Build intermediate W and b
-            for i = 3:obj.numHiddenLayers + 3  % do not build W and b from last hidden layer to output layer
+            for i = 2:obj.numHiddenLayers + 1
                 K = obj.initScaler*normrnd(0,1,[obj.hiddenLayersSize, obj.hiddenLayersSize]);
                 W = 0.5*(K - K' - gammaMatrix);
                 b = obj.initScaler*normrnd(0,1,[obj.hiddenLayersSize,1]);
@@ -64,14 +58,7 @@ classdef ResNetAntiSymODE < handle
                 obj.b{i} = b;
             end
 
-            % Build last layer weights which are anti-symmetric
-            K = obj.initScaler * normrnd(0,1,[obj.hiddenLayersSize, obj.hiddenLayersSize]);
-            WN = 0.5 * (K - K' - gammaMatrix);
-            bN = obj.initScaler * normrnd(0,1,[obj.hiddenLayersSize,1]);
-
-            obj.W{obj.numHiddenLayers + 3} = WN;
-            obj.b{obj.numHiddenLayers + 3} = bN;
-            obj.totalNumLayers = obj.numHiddenLayers + 3;
+            obj.totalNumLayers = i;
         end
 
 
@@ -119,7 +106,7 @@ classdef ResNetAntiSymODE < handle
             % Calculate the last layer weights gradient dY^(L)/dW^(L)
             obj.O{YN} = obj.h * reluD(obj.W{YN},obj.Y{YN-1}, obj.b{YN}, obj.tm) * obj.Y{YN-1}';
 
-            % Calculate error gradient for L-2, L-3,..., 2 layers
+            % Calculate error gradient for L-1, L-2,..., 2 layers
             for i = YN-1:-1:2
                 % Compute delta
                 obj.D{i} = obj.D{i+1} + obj.W{i+1}'*( obj.D{i+1} .* (obj.h*reluD(obj.W{i+1},obj.Y{i},obj.b{i+1}, obj.tm)) );
@@ -195,13 +182,14 @@ classdef ResNetAntiSymODE < handle
 
                 if mod(i, numSamples) == 0
                     progress = 100*i / cycles;
-                    [softY',c]
+                    classifRes=[softY',c]
+                    signalY = [obj.matrixY];
+                    minMaxSignalY = [min(signalY);max(signalY)]
                     costAvg = costAvg / double(numSamples);
                     disp(['average cost over ', num2str(numSamples, '%0d'),' samples: ', num2str(costAvg, '%0.3f'),' progress: ', num2str(progress)]);
-                    gradNorms = obj.gradientNorms()
+                    weightNorms = obj.weightNorms()
                     costAvg = 0;
                 end
-
             end
 
         end
@@ -230,6 +218,22 @@ classdef ResNetAntiSymODE < handle
                 normsVec(i) = norm(obj.D{i});
             end
         end
+
+
+        function m = matrixY(obj)
+            m=[];
+            for i=2:obj.totalNumLayers-1
+                m(:,i) = obj.Y{i};
+            end
+        end
+
+
+        function normsWeight = weightNorms(obj)
+            for i = obj.totalNumLayers:-1:1
+                normsWeight(i) = norm(obj.W{i});
+            end
+        end
+
     end
 end
 
@@ -237,11 +241,12 @@ end
 function y = relu(W, x, b, testmode)
 % ReLu activation fucntion
     [~,n] = size(W);
+    z = W*x+b;
 
     if testmode == true
-        y = W*x+b;    % this is for testing without max() operator
+        y = z;    % this is for testing without max() operator
     else
-        y = max(0, W*x+b);
+        y = (z > 0) .* z;
     end
 end
 
@@ -277,8 +282,8 @@ function resSoft = softmax(y, y_args)
     inputSize = max(size(y_args));
 
     for i = 1:inputSize
-        y_argsSum = y_argsSum + exp(y_args(i));
+        y_argsSum = y_argsSum + exp(y_args(i) + 1);
     end
 
-    resSoft = exp(y) / y_argsSum;
+    resSoft = exp(y + 1) / y_argsSum;
 end
