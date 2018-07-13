@@ -20,7 +20,7 @@ h = 0.5;        % default 0.7
 
 
 % Set to true if need to retrain
-first_time_launch = true;
+first_time_launch = false;
 doPerturbation = true;
 
 % Training part.
@@ -37,7 +37,7 @@ if first_time_launch == true
     net.name = strcat(netStr{1},netStr{2},netStr{3},netStr{4},netStr{5},netStr{6},netStr{7},netStr{8}, netStr{9});
     save(str,'net');
 else
-    load('resources/antisymODE_net_l15_h0.2_ig0.01_n3.mat')
+    load('resources/ODE_net_l20_h0.5_ig0.0001_n3.mat')
 end
 
 %                                           %

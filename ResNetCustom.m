@@ -154,22 +154,22 @@ classdef ResNetCustom < handle
                 % Gradient step. Update weights and biases
 
                 % First update dim reduction weights and biases
-                obj.W2_lin = obj.W2_lin - eta*obj.D{2} *i_vector' - eta*obj.r*obj.W2_lin;
+                obj.W2_lin = obj.W2_lin - eta*(obj.D{2} *i_vector' + obj.r*obj.W2_lin);
                 obj.b2_lin = obj.b2_lin - eta*obj.D{2};
 
-                obj.WYN_lin = obj.WYN_lin - eta*obj.D{YN} * obj.Y{YN-1}' - eta*obj.r*obj.WYN_lin;
+                obj.WYN_lin = obj.WYN_lin - eta*(obj.D{YN} * obj.Y{YN-1}' + obj.r*obj.WYN_lin);
                 obj.bYN_lin = obj.bYN_lin - eta*obj.D{YN};
 
                 % Update ReLu weights and biases for layer 2 and YN
-                obj.W{2} = obj.W{2} - eta * obj.h*obj.D{2}.* obj.df(obj.W{2}, i_vector, obj.b{2})* i_vector' - eta*obj.r*obj.W{2};
+                obj.W{2} = obj.W{2} - eta * (obj.h*obj.D{2}.* obj.df(obj.W{2}, i_vector, obj.b{2})* i_vector' + obj.r*obj.W{2});
                 obj.b{2} = obj.b{2} - eta* obj.h* obj.D{2} .* obj.df(obj.W{2}, i_vector,obj.b{2});
 
-                obj.W{YN} = obj.W{YN} - eta * obj.O{YN} - eta*obj.r*obj.W{YN};
+                obj.W{YN} = obj.W{YN} - eta * (obj.O{YN} + obj.r*obj.W{YN});
                 obj.b{YN} = obj.b{YN} - eta* obj.h* obj.D{YN} .* obj.df(obj.W{YN}, obj.Y{YN-1}, obj.b{YN});
 
                 % Update intermediate layers
                 for i = 3:YN-1
-                    obj.W{i} = obj.W{i} - eta *diag(obj.D{i})*obj.O{i} - eta*obj.r*obj.W{i};
+                    obj.W{i} = obj.W{i} - eta *(diag(obj.D{i})*obj.O{i} + obj.r*obj.W{i});
                     obj.b{i} = obj.b{i} - eta* obj.h* obj.D{i} .* obj.df(obj.W{i}, obj.Y{i-1}, obj.b{i});
                 end
 
@@ -212,23 +212,22 @@ classdef ResNetCustom < handle
 
             for i = 1:cycles
 
-
                 randInd = randi(numVecs);
                 x = trainData(:, randInd);
                 c = trainLabel(:, randInd);
 
                 y = forwardProp(obj, x);
+                backProp(obj, x, c, eta, true);
 
+                % Compute costAvg
                 softY = [];
                 for j=1:obj.outputLayerSize
                     softY(j) = softmax(y(j),y);
                 end
 
-
-                backProp(obj, x, c, eta, true);
-
                 costAvg = costAvg + norm(c - softY')^2;
 
+                % Display stats
                 if mod(i, numSamples) == 0
                     progress = 100*i / cycles;
                     classifRes=[softY',c]
