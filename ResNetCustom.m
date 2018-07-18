@@ -33,7 +33,7 @@ classdef ResNetCustom < handle
     end
 
     methods
-        function obj = ResNetCustom(i_numHiddenLayers, i_inputLayerSize, i_outputLayerSize, i_hiddenLayersSize, i_gamma, h, initScaler, i_testMode, activFunc, p, s, r)
+        function obj = ResNetCustom(i_numHiddenLayers, i_inputLayerSize, i_outputLayerSize, i_hiddenLayersSize, h, initScaler, i_testMode, activFunc, p, s, r)
             % Build class of activation functions
             % Params: activFunc can be 'relu', 'sigmoid' or 'powerlog', param 'p' is a power for powerlog func
             ActivClass = ActivFunc(activFunc, i_testMode, p, s);

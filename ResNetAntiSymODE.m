@@ -182,6 +182,7 @@ classdef ResNetAntiSymODE < handle
 
                 costAvg = costAvg + norm(c - softY')^2;
 
+                % Display stats
                 if mod(i, numSamples) == 0
                     progress = 100*i / cycles;
                     classifRes=[softY',c]

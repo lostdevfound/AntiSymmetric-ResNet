@@ -29,7 +29,7 @@ doPerturbation = true;
 
 if first_time_launch == true
     % Init NN and train it
-    net = ResNetCustom(layers, 784, 10, n, igamma, h, initScaler, false, activ, p, s, r);
+    net = ResNetCustom(layers, 784, 10, n, h, initScaler, false, activ, p, s, r);
     disp('training...');
     net.train(trainImages, trainLabels, trainCycles, eta);
     disp('training complete.');
