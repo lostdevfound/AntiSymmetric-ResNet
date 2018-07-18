@@ -139,8 +139,8 @@ classdef ActivFunc < handle
         end
 
 
-        function resSoft = softmax(y, y_args)
-            % scalar This function computes softmax
+        function resSoft = softmax(y_args)
+            % This function computes softmax
             y_argsSum = 0;
             inputSize = max(size(y_args));
 
@@ -148,7 +148,9 @@ classdef ActivFunc < handle
                 y_argsSum = y_argsSum + exp(y_args(i));
             end
 
-            resSoft = exp(y) / y_argsSum;
+            for i = 1:inputSize
+                resSoft(i) = exp(y_args(i)) / y_argsSum;
+            end
         end
     end
 end

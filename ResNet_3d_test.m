@@ -3,11 +3,11 @@ clear all;
 % Load training data
 load('resources/data3d/data3d.mat');
 load('resources/data3d/label3d.mat');
-trainLabelSet = labelSet(:,1:25000);
-trainDataSet = dataSet(:,1:25000);
+trainLabelSet = labelSet(:,1:10000);
+trainDataSet = dataSet(:,1:10000);
 
-validLabelSet = labelSet(:,25001:30000);
-validDataSet = dataSet(:,25001:30000);
+validLabelSet = labelSet(:,10001:30000);
+validDataSet = dataSet(:,10001:30000);
 
 % Setup NN's params
 igamma = 0.0001;       % default 0.1
@@ -17,28 +17,41 @@ initScaler = 1;      % default 0.01
 neurons = 3;
 layers = 20;
 h = 0.5;        % default 0.7
+activFunc = 'relu';
+regular = 0;
+p = 1;
+s = 1;
 
 
 % Set to true if need to retrain
-first_time_launch = false;
+first_time_launch = true;
 doPerturbation = true;
 
-% Training part.
+%                                           %
+%              Training part                %
+%                                           %
+
 if first_time_launch == true
     % Init NN and train it. Params i_numHiddenLayers, i_inputLayerSize, i_outputLayerSize, i_hiddenLayersSize, i_gamma, h, initScaler, i_testMode
-    net = ResNetAntiSymODE(layers, 3, 3, neurons, igamma, h, initScaler, false);
+    net = ResNetAntiSymODE(layers, 3, 3, neurons, igamma, h, initScaler, false, activFunc, regular, p, s);
     disp('training...');
     net.train(trainDataSet, trainLabelSet, trainCycles, eta);
     disp('training complete.');
 
     % Save trained net
-    netStr = {'ODE_net_l', num2str(layers), '_h', num2str(h), '_ig', num2str(igamma), '_n', num2str(neurons), '.mat','resources/'};
-    str = strcat(netStr{10},netStr{1},netStr{2},netStr{3},netStr{4},netStr{5},netStr{6},netStr{7},netStr{8}, netStr{9});
-    net.name = strcat(netStr{1},netStr{2},netStr{3},netStr{4},netStr{5},netStr{6},netStr{7},netStr{8}, netStr{9});
-    save(str,'net');
+    netStr = {'resources/', 'ODE_', activFunc, '_net_l', num2str(layers), '_h', num2str(h), '_n', num2str(neurons), '_p', num2str(p), '_s', num2str(s), '_r', num2str(regular),'_gamma',num2str(igamma), '.mat'};
+    [~,numNames] = size(netStr);
+
+    str = '';
+    for i=1:numNames
+        str = strcat(str,netStr(i));
+    end
+
+    save(str{1},'net');
 else
-    % load('resources/ODE_net_l20_h0.5_ig0.0001_n3.mat')
-    load('resources/softmax_net_l10_h0.2_n3.mat')
+
+    load('resources/ODE_net_l20_h0.5_ig0.0001_n3.mat')
+    % load('resources/softmax_net_l10_h0.2_n3.mat')
 end
 
 %                                           %
@@ -46,7 +59,7 @@ end
 %                                           %
 
 normSum = 0;
-samples = 5;
+samples = 50;
 offset= 4;
 label = 0;
 breakCount = 20000;
@@ -77,7 +90,7 @@ for k = offset:offset + samples
     while doPerturbation == true
         net.forwardProp(perturbedVec);
         perturbedVec = net.adversBackProp(perturbedVec,validLabelSet(:,index), 0.01);
-        classifRes = softmax(net.forwardProp(perturbedVec));
+        classifRes = ActivFunc.softmax(net.forwardProp(perturbedVec));
 
         [prediction,predictionInd] = max(classifRes);
 
@@ -109,7 +122,7 @@ for k = offset:offset + samples
         Y(2) = perturbedVec(2);
         Z(1) = testVec(3);
         Z(2) = perturbedVec(3);
-
+        disp('index:');disp(index);
         figure
         [xs,ys,zs] = sphere;
         h = surfl(xs, ys, zs);
@@ -133,8 +146,8 @@ for k = offset:offset + samples
 end
 
 % Classify images
-classificationResultPerturb = softmax(net.forwardProp(perturbedVec))';
-classificationResultOrig = softmax(net.forwardProp(testVec))';
+classificationResultPerturb = ActivFunc.softmax(net.forwardProp(perturbedVec))';
+classificationResultOrig = ActivFunc.softmax(net.forwardProp(testVec))';
 disp('results: label, classifPerturbed, classifOrig');
 results = [label,classificationResultPerturb, classificationResultOrig]
 disp('norms: perturbed norm, orig norm')
@@ -167,24 +180,3 @@ disp(relativeAvgNorm);
 % scatter3(X,Y,Z, [100 100], [0 0 1; 1 0 0], 'o')
 % % set(gca,'XLim',[-2 2],'YLim',[-2 2],'ZLim',[-2 2])
 % set(gca, 'Projection','perspective')
-
-
-function y = sigm(z)
-    % sigmoid activation function.
-    y = 1./(1+exp(-z));
-end
-
-
-function resSoft = softmax(y_args)
-    % This function computes softmax
-    y_argsSum = 0;
-    inputSize = max(size(y_args));
-
-    for i = 1:inputSize
-        y_argsSum = y_argsSum + exp(y_args(i));
-    end
-
-    for i = 1:inputSize
-        resSoft(i) = exp(y_args(i)) / y_argsSum;
-    end
-end

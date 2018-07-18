@@ -9,21 +9,23 @@ trainImages = trainImages - trainMean;
 validatimages = validatimages - validMean;
 
 % Setup NN's params
-h = 1;        % default 0.7
-igamma = 0;       % default 0.1
-trainCycles = 60000;       % default 100000
-eta = 0.002;           % good default 0.0005 or 0.003
-initScaler = 0.1;      % default 0.01
-n = 20;     %neurons
+h = 1;                          % default 0.7
+igamma = 0;                     % default 0.1
+trainCycles = 400000;           % default 400000
+eta = 0.002;                    % good default 0.0005 or 0.003
+initScaler = 0.1;               % default 0.01
+n = 20;                         %neurons
 layers = 2;
-activ = 'sqrf';
+activ = 'relu';
 p = 5;
 s = 2;
 r = 0.003;
-% Set to true if need to retrain
+
 first_time_launch = true;
 doPerturbation = true;
-doRetrain = true;
+%                                           %
+%              Training part                %
+%                                           %
 
 if first_time_launch == true
     % Init NN and train it
@@ -33,15 +35,12 @@ if first_time_launch == true
     disp('training complete.');
 
     % Save trained net
-    netStr = {'resources/', activ, '_net_l', num2str(layers), '_h', num2str(h), '_n', num2str(n), '_p', num2str(p), '_s', num2str(s), '_r', num2str(r),'.mat'};
+    netStr = {'resources/','custom_',  activ, '_net_l', num2str(layers), '_h', num2str(h), '_n', num2str(n), '_p', num2str(p), '_s', num2str(s), '_r', num2str(r),'.mat'};
     [~,numNames] = size(netStr);
 
     str = '';
     for i=1:numNames
         str = strcat(str,netStr(i));
-    end
-    if doRetrain == true
-        net = retrain(net, trainImages, trainLabels, trainCycles, eta, 1);
     end
     save(str{1},'net');
 else
@@ -50,9 +49,9 @@ end
 
 
 
-%
-%              Perturbation part
-%
+%                                           %
+%              Perturbation part            %
+%                                           %
 normSum = 0;
 samples = 30;
 offset=1;

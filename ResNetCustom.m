@@ -36,7 +36,7 @@ classdef ResNetCustom < handle
         function obj = ResNetCustom(i_numHiddenLayers, i_inputLayerSize, i_outputLayerSize, i_hiddenLayersSize, i_gamma, h, initScaler, i_testMode, activFunc, p, s, r)
             % Build class of activation functions
             % Params: activFunc can be 'relu', 'sigmoid' or 'powerlog', param 'p' is a power for powerlog func
-            ActivClass = ActivFunc(activFunc, i_testMode, p,s);
+            ActivClass = ActivFunc(activFunc, i_testMode, p, s);
             obj.f = @ActivClass.activf;
             obj.df = @ActivClass.activfD;
             obj.ddf = @ActivClass.activfDD;
@@ -118,26 +118,23 @@ classdef ResNetCustom < handle
 
         function backresult = backProp(obj, i_vector, label_vector, eta, updateWeights)
             % Back propagation. Inputs: self, training vector, label vector, learning rate eta, updateWeights: true/false
-            Y = obj.Y{end};
             YN = obj.totalNumLayers;
 
             % Build softmax layer
-            h_vec = [];
-            for i=1:obj.outputLayerSize;
-                h_vec(i) = softmax(Y(i),Y);
-            end
+            h_vec = ActivFunc.softmax(obj.Y{end});
 
             % Build dh/dY^(L) matrix, i.e deriv of softmax h w.r.t y^(L)
             dh = [];
             for i =1:obj.outputLayerSize;
                 for j=1:obj.outputLayerSize;
                     if i==j
-                        dh(i,j) = softmax(Y(i),Y)*(1-softmax(Y(j),Y));
+                        dh(i,j) = h_vec(i)*(1-h_vec(j));
                     else
-                        dh(i,j) = -softmax(Y(i),Y)*softmax(Y(j),Y);
+                        dh(i,j) = -h_vec(i)*h_vec(j);
                     end
                 end
             end
+
 
             % Calculate the last layer error gradient dC/dY^(L)
             obj.D{YN} = dh' * (-label_vector ./ h_vec');
@@ -231,10 +228,7 @@ classdef ResNetCustom < handle
                 backProp(obj, x, c, eta, true);
 
                 % Compute costAvg
-                softY = [];
-                for j=1:obj.outputLayerSize
-                    softY(j) = softmax(y(j),y);
-                end
+                softY = ActivFunc.softmax(y);
 
                 costAvg = costAvg + norm(c - softY')^2;
 
@@ -301,19 +295,4 @@ classdef ResNetCustom < handle
         end
 
     end
-end
-
-% TODO replace this with the class function
-function resSoft = softmax(y, y_args)
-    % This function computes softmax
-    y_argsSum = 0;
-    inputSize = max(size(y_args));
-
-    D = -max(y_args);   % constant D for numerical stability
-
-    for i = 1:inputSize
-        y_argsSum = y_argsSum + exp(y_args(i) + D);
-    end
-
-    resSoft = exp(y + D) / y_argsSum;
 end

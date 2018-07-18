@@ -17,6 +17,9 @@ classdef ResNetAntiSym < handle
         b2_lin;
         WYN_lin;
         bYN_lin;
+        f;      % Activation function handle
+        df;     % Derivative of an activation function
+        ddf;    % Second Derivative of an activation function
         W;
         b;
         totalNumLayers;
@@ -28,8 +31,15 @@ classdef ResNetAntiSym < handle
     end
 
     methods
-        function obj = ResNetAntiSym(i_numHiddenLayers, i_inputLayerSize, i_outputLayerSize, i_hiddenLayersSize, i_gamma, h, initScaler, regular, i_testMode)
+        function obj = ResNetAntiSym(i_numHiddenLayers, i_inputLayerSize, i_outputLayerSize, i_hiddenLayersSize, i_gamma, h, initScaler, i_testMode, activFunc, regular, p, s)
             % ResNet constructor
+
+            % Params: activFunc can be 'obj.f', 'sigmoid' or 'powerlog', param 'p' is a power for powerlog func
+            ActivClass = ActivFunc(activFunc, i_testMode, p, s);
+            obj.f = @ActivClass.activf;
+            obj.df = @ActivClass.activfD;
+            obj.ddf = @ActivClass.activfDD;
+
             obj.tm = i_testMode;
             obj.numHiddenLayers = i_numHiddenLayers;
             obj.inputLayerSize = i_inputLayerSize;
@@ -86,16 +96,16 @@ classdef ResNetAntiSym < handle
         function result = forwardProp(obj, i_vector)
             % Forward propagation
             YN = obj.totalNumLayers;
-            % relu first hidden layer
-            obj.Y{2} = obj.W2_lin*i_vector + obj.b2_lin + obj.hIO*relu(obj.W{2},i_vector,obj.b{2}, obj.tm);
+            % obj.f first hidden layer
+            obj.Y{2} = obj.W2_lin*i_vector + obj.b2_lin + obj.hIO*obj.f(obj.W{2},i_vector,obj.b{2});
 
-            % relu hidden layers
+            % obj.f hidden layers
             for i = 3:YN - 1
-                obj.Y{i} = obj.Y{i-1} + obj.h*relu(obj.W{i},obj.Y{i-1},obj.b{i}, obj.tm);
+                obj.Y{i} = obj.Y{i-1} + obj.h*obj.f(obj.W{i},obj.Y{i-1},obj.b{i});
             end
 
-            % relu last layer
-            obj.Y{YN} = obj.WYN_lin*obj.Y{YN-1} + obj.bYN_lin + obj.hIO*relu(obj.W{YN},obj.Y{YN-1},obj.b{YN}, obj.tm);
+            % obj.f last layer
+            obj.Y{YN} = obj.WYN_lin*obj.Y{YN-1} + obj.bYN_lin + obj.hIO*obj.f(obj.W{YN},obj.Y{YN-1},obj.b{YN});
 
             result = obj.Y{end};
 
@@ -104,23 +114,19 @@ classdef ResNetAntiSym < handle
 
         function backresult = backProp(obj, i_vector, label_vector, eta, updateWeights)
             % Back propagation. Inputs: self, training vector, label vector, learning rate eta, updateWeights: true/false
-            Y = obj.Y{end};
             YN = obj.totalNumLayers;
 
             % Build softmax layer
-            h_vec = [];
-            for i=1:obj.outputLayerSize;
-                h_vec(i) = softmax(Y(i),Y);
-            end
+            h_vec = ActivFunc.softmax(obj.Y{end});
 
             % Build dh/dY^(L) matrix, i.e deriv of softmax h w.r.t y^(L)
             dh = [];
             for i =1:obj.outputLayerSize;
                 for j=1:obj.outputLayerSize;
                     if i==j
-                        dh(i,j) = softmax(Y(i),Y)*(1-softmax(Y(j),Y));
+                        dh(i,j) = h_vec(i)*(1-h_vec(j));
                     else
-                        dh(i,j) = -softmax(Y(i),Y)*softmax(Y(j),Y);
+                        dh(i,j) = -h_vec(i)*h_vec(j);
                     end
                 end
             end
@@ -128,22 +134,22 @@ classdef ResNetAntiSym < handle
             % Calculate the last layer error gradient dC/dY^(L)
             obj.D{YN} = dh' * (-label_vector ./ h_vec');
             % Calculate the last layer weights gradient dY^(L)/dW^(L)
-            obj.O{YN} = (obj.h*obj.D{YN}.*reluD(obj.W{YN},obj.Y{YN-1},obj.b{YN}, obj.tm))*obj.Y{YN-1}';
+            obj.O{YN} = (obj.h*obj.D{YN}.*obj.df(obj.W{YN},obj.Y{YN-1},obj.b{YN}))*obj.Y{YN-1}';
             % Calculate YN-1 layer gradient
-            obj.D{YN-1} = obj.WYN_lin'*obj.D{YN} + obj.W{YN}'*(obj.D{YN}.*reluD(obj.W{YN},obj.Y{YN-1},obj.b{YN}, obj.tm)*obj.h);
+            obj.D{YN-1} = obj.WYN_lin'*obj.D{YN} + obj.W{YN}'*(obj.D{YN}.*obj.df(obj.W{YN},obj.Y{YN-1},obj.b{YN})*obj.h);
             % Calculate the last YN-1 layer weights gradient dY_(L-1)/dW_(L-1)
-            obj.O{YN-1} = obj.h * reluD(obj.W{YN-1}, obj.Y{YN-2}, obj.b{YN-1}, obj.tm) * obj.Y{YN-2}';
+            obj.O{YN-1} = obj.h * obj.df(obj.W{YN-1}, obj.Y{YN-2}, obj.b{YN-1}) * obj.Y{YN-2}';
 
             % Calculate error gradient for L-2, L-3,..., 2 layers
             for i = YN-2:-1:2
                 % Compute delta
-                obj.D{i} = obj.D{i+1} + obj.W{i+1}'*( obj.D{i+1} .* (obj.h*reluD(obj.W{i+1},obj.Y{i},obj.b{i+1}, obj.tm)) );
+                obj.D{i} = obj.D{i+1} + obj.W{i+1}'*( obj.D{i+1} .* (obj.h*obj.df(obj.W{i+1},obj.Y{i},obj.b{i+1})) );
                 % Compute omega
-                obj.O{i} = obj.h * reluD(obj.W{i},obj.Y{i-1}, obj.b{i}, obj.tm) * obj.Y{i-1}';
+                obj.O{i} = obj.h * obj.df(obj.W{i},obj.Y{i-1}, obj.b{i}) * obj.Y{i-1}';
             end
 
             % Compute gradient dC/dX
-            obj.D{1} = obj.W2_lin' * obj.D{2} + obj.h*obj.W{2}' * (obj.D{2} .* reluD(obj.W{2}, i_vector, obj.b{2}, obj.tm));
+            obj.D{1} = obj.W2_lin' * obj.D{2} + obj.h*obj.W{2}' * (obj.D{2} .* obj.df(obj.W{2}, i_vector, obj.b{2}));
             backresult = obj.D{1};  % return dC/dX
 
             if updateWeights == true
@@ -157,18 +163,16 @@ classdef ResNetAntiSym < handle
                 obj.bYN_lin = obj.bYN_lin - eta*obj.D{YN};
 
                 % Update ReLu weights and biases for layer 2 and YN
-                obj.W{2} = obj.W{2} - eta * (obj.h*obj.D{2}.* reluD(obj.W{2}, i_vector, obj.b{2}, obj.tm))* i_vector';
-                obj.b{2} = obj.b{2} - eta* obj.h* obj.D{2} .* reluD(obj.W{2}, i_vector,obj.b{2}, obj.tm);
+                obj.W{2} = obj.W{2} - eta * (obj.h*obj.D{2}.* obj.df(obj.W{2}, i_vector, obj.b{2}))* i_vector';
+                obj.b{2} = obj.b{2} - eta* obj.h* obj.D{2} .* obj.df(obj.W{2}, i_vector,obj.b{2});
 
                 obj.W{YN} = obj.W{YN} - eta * obj.O{YN};
-                obj.b{YN} = obj.b{YN} - eta* obj.h* obj.D{YN} .* reluD(obj.W{YN}, obj.Y{YN-1}, obj.b{YN}, obj.tm);
+                obj.b{YN} = obj.b{YN} - eta* obj.h* obj.D{YN} .* obj.df(obj.W{YN}, obj.Y{YN-1}, obj.b{YN});
 
                 % Update intermediate layers
                 for i = 3:YN-1
-                    obj.W{i} = obj.W{i} - eta * 0.5*(diag(obj.D{i})*obj.O{i} - (diag(obj.D{i})*obj.O{i})') - obj.r*(obj.W{i} - obj.W{i}');
-                    obj.b{i} = obj.b{i} - eta* obj.h* obj.D{i} .* reluD(obj.W{i}, obj.Y{i-1}, obj.b{i}, obj.tm);
-                    % obj.W{i} = obj.W{i} - eta * 0.5*(diag(obj.D{i})*obj.O{i} - (diag(obj.D{i})*obj.O{i})');
-                    % obj.b{i} = obj.b{i} - eta* obj.h* obj.D{i} .* reluD(obj.W{i}, obj.Y{i-1}, obj.b{i}, obj.tm);
+                    obj.W{i} = obj.W{i} - eta * 0.5*(diag(obj.D{i})*obj.O{i} - (diag(obj.D{i})*obj.O{i})') - eta*obj.r*(obj.W{i} - obj.W{i}');
+                    obj.b{i} = obj.b{i} - eta* obj.h* obj.D{i} .* obj.df(obj.W{i}, obj.Y{i-1}, obj.b{i});
                 end
             end
         end
@@ -181,14 +185,14 @@ classdef ResNetAntiSym < handle
             YN = obj.totalNumLayers;
 
             % Calculate the last layer gradient dY_i^(l)/dY_j^(l-1)
-            obj.DY{YN-1} = obj.W{YN} .* (ones(obj.outputLayerSize,1) + obj.h*reluD(obj.W{YN}, obj.Y{YN-1}, obj.b{YN}, obj.tm));
+            obj.DY{YN-1} = obj.W{YN} .* (ones(obj.outputLayerSize,1) + obj.h*obj.df(obj.W{YN}, obj.Y{YN-1}, obj.b{YN}, obj.tm));
 
             % Calculate the L-1, L-2, ... , 2 layer gradients
             for i = YN-2:-1:2
-                obj.DY{i} = obj.DY{i+1} + obj.DY{i+1} * (obj.W{i+1}.*obj.h*reluD(obj.W{i+1}, obj.Y{i}, obj.b{i+1}, obj.tm));
+                obj.DY{i} = obj.DY{i+1} + obj.DY{i+1} * (obj.W{i+1}.*obj.h*obj.df(obj.W{i+1}, obj.Y{i}, obj.b{i+1}, obj.tm));
             end
 
-            obj.DY{1} = obj.DY{2} * obj.W{2} + obj.DY{2} * (obj.W{2} .* ( obj.h*reluD(obj.W{2}, i_vector, obj.b{2}, obj.tm)) );
+            obj.DY{1} = obj.DY{2} * obj.W{2} + obj.DY{2} * (obj.W{2} .* ( obj.h*obj.df(obj.W{2}, i_vector, obj.b{2}, obj.tm)) );
             dYdX = obj.DY{1};
         end
 
@@ -216,11 +220,7 @@ classdef ResNetAntiSym < handle
 
                 y = forwardProp(obj, x);
 
-                softY = [];
-                for j=1:obj.outputLayerSize
-                    softY(j) = softmax(y(j),y);
-                end
-
+                softY = ActivFunc.softmax(y);
 
                 backProp(obj, x, c, eta, true);
 
@@ -264,74 +264,4 @@ classdef ResNetAntiSym < handle
             end
         end
     end
-end
-
-function y = activf(W,x,b,activ,testmode)
-    if activ == 'relu'
-        y = relu(W,x,b,testmode);
-    elseif activ == 'sigmoid'
-        y = sigm(W,x,b);
-    elseif activ == 'powerlog'
-        y = powerlog(W,x,b);
-    end
-end
-
-function y = relu(W, x, b, testmode)
-% vector ReLu activation fucntion
-    [~,n] = size(W);
-
-    if testmode == true
-        y = W*x+b;    % this is for testing without max() operator
-    else
-        y = max(0, W*x+b);
-    end
-end
-
-
-function d = reluD(W, x, b, testmode)
-    % vector ReluD derivative of the ReLu function
-    leak = 0;
-
-    if testmode == true
-        d = 1;    % this is for testing without max() operator
-    else
-        d = W*x + b >= 0;
-        d(d==0) = leak;
-    end
-end
-
-
-function y = sigm(W,x,b)
-    % vector sigmoid activation function.
-    y = 1./(1+exp(-(W*x+b)));
-end
-
-
-function d = sigmD(W,x,b)
-    % vector sigmD is a derivative of the sigmoid function
-    d = sigm(W*x+b) .* (1 - sigm(W*x+b));
-end
-
-% function y = sigm(z)
-%     % scalar sigmoid activation function.
-%     y = 1./(1+exp(-z));
-% end
-%
-%
-% function d = sigmD(x)
-%     % scalar sigmD is a derivative of the sigmoid function
-%     d = sigm(x) .* (1 - sigm(x));
-% end
-
-
-function resSoft = softmax(y, y_args)
-    % scalar This function computes softmax
-    y_argsSum = 0;
-    inputSize = max(size(y_args));
-
-    for i = 1:inputSize
-        y_argsSum = y_argsSum + exp(y_args(i));
-    end
-
-    resSoft = exp(y) / y_argsSum;
 end
