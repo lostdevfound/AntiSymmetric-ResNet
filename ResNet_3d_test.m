@@ -37,7 +37,8 @@ if first_time_launch == true
     net.name = strcat(netStr{1},netStr{2},netStr{3},netStr{4},netStr{5},netStr{6},netStr{7},netStr{8}, netStr{9});
     save(str,'net');
 else
-    load('resources/ODE_net_l20_h0.5_ig0.0001_n3.mat')
+    % load('resources/ODE_net_l20_h0.5_ig0.0001_n3.mat')
+    load('resources/softmax_net_l10_h0.2_n3.mat')
 end
 
 %                                           %
@@ -45,8 +46,8 @@ end
 %                                           %
 
 normSum = 0;
-samples = 300;
-offset= 1;
+samples = 5;
+offset= 4;
 label = 0;
 breakCount = 20000;
 
@@ -56,33 +57,36 @@ onenormVecNum = 0;
 for k = offset:offset + samples
     % Pick image then forwardProp image and print result in the console.
     index = k;     % Pick some image by its index (digit 3 is index 33)
-    testImg =  validDataSet(:,index);
-    [~,digitNumber] = max(validLabelSet(:,index));
+    testVec =  validDataSet(:,index);
+    [~,labelIndex] = max(validLabelSet(:,index));
 
-    perturbedVec = testImg;
+    % Skip vectors that lie outside the sphere
+    if labelIndex == 2
+        disp('skipping');
+        continue;
+    else
+        onenormVecNum = onenormVecNum + 1;
+    end
+
+    perturbedVec = testVec;
     classifRes = ones(3,1);
-
-    noisyImg = min(testImg + 0.5*rand(3,1), 1);   % limit the range from 0 to 1
 
     % Perturbation generation
     count = 0;
-    % Count vecs that have norm less that 1
-    if norm(testImg) < 1
-        onenormVecNum = onenormVecNum + 1;
-    end
 
     while doPerturbation == true
         net.forwardProp(perturbedVec);
         perturbedVec = net.adversBackProp(perturbedVec,validLabelSet(:,index), 0.01);
         classifRes = softmax(net.forwardProp(perturbedVec));
 
-        [prediction,maxInd] = max(classifRes);
-        % Break if correct classif index is not max
-        if maxInd ~= digitNumber
+        [prediction,predictionInd] = max(classifRes);
+
+        % Break if predictionInd is oncorrect
+        if predictionInd ~= labelIndex
             break;
 
         elseif count > breakCount
-            perturbedVec = testImg;
+            perturbedVec = testVec;
             samples = samples -1;
             disp('breaking...........');
             disp(k)
@@ -92,46 +96,77 @@ for k = offset:offset + samples
         count = count + 1;
     end
 
-    % Count the nunmber of vecs that have norm < 1 and where perturbed and fooled the NN
-    if  count < breakCount && (maxInd ~= max(classifRes)) && norm(perturbedVec) < 1 && norm(testImg) < 1
+    % Count the nunmber of vecs that have norm < 1 and fooled the NN
+    if  count < breakCount && (predictionInd ~= labelIndex) && norm(perturbedVec) < 1 && norm(testVec) < 1
         foolCount = foolCount + 1;
         disp('fooled count:'); disp(foolCount);
-    end
+        relNormOfPerturbation = norm(perturbedVec - testVec)/norm(testVec);
+        normSum = normSum + relNormOfPerturbation;
 
+        X(1) = testVec(1);
+        X(2) = perturbedVec(1);
+        Y(1) = testVec(2);
+        Y(2) = perturbedVec(2);
+        Z(1) = testVec(3);
+        Z(2) = perturbedVec(3);
+
+        figure
+        [xs,ys,zs] = sphere;
+        h = surfl(xs, ys, zs);
+
+        colormap([0 0 0]);
+        set(h, 'FaceAlpha', 0.1);
+        shading interp;
+        hold on;
+        scatter3(X,Y,Z, [100 100], [0 0 1; 1 0 0], '*');
+        set(gca, 'Projection','perspective');
+        legendStrOrig = {'original', ', vec norm:', num2str(norm(testVec))};
+        legendStrPerturbed = {'perturbed ', ', vec norm:', num2str(norm(perturbedVec))};
+        legendStrOrig = strcat(legendStrOrig{1:end});
+        legendStrPerturbed = strcat(legendStrPerturbed{1:end});
+        legScatter = legend({legendStrOrig, legendStrPerturbed}, 'FontSize', 12);
+        leg_pos = get(legScatter,'position');
+        set(legScatter,'position',[leg_pos(1),leg_pos(2),leg_pos(3)*1.2,leg_pos(4)*2]) ;
+    end
     label = validLabelSet(:,index);
-    absNormOfPerturbation = norm(perturbedVec - testImg);
-    relNormOfPerturbation = norm(perturbedVec - testImg)/norm(testImg);
-    normSum = normSum + relNormOfPerturbation;
+
 end
-RelativeAvgNorm = normSum/(samples+1)
 
 % Classify images
 classificationResultPerturb = softmax(net.forwardProp(perturbedVec))';
-classificationResultOrig = softmax(net.forwardProp(testImg))';
-classificationResultNoisy = softmax(net.forwardProp(noisyImg))';
-results = [label,classificationResultPerturb, classificationResultOrig, classificationResultNoisy]
-norms = [norm(perturbedVec), norm(testImg), norm(noisyImg)]
+classificationResultOrig = softmax(net.forwardProp(testVec))';
+disp('results: label, classifPerturbed, classifOrig');
+results = [label,classificationResultPerturb, classificationResultOrig]
+disp('norms: perturbed norm, orig norm')
+norms = [norm(perturbedVec), norm(testVec)]
 % Didsplay picked image
+disp('### Overall report ###');
+disp('Vectors sampled:');
+disp(onenormVecNum);
+fooledPercent = foolCount/onenormVecNum*100;
+disp('Percent fooled:');
+disp(fooledPercent);
+disp('relativeAvgNorm:')
+relativeAvgNorm = normSum/(samples+1);
+disp(relativeAvgNorm);
 
-fooledPercent = foolCount/onenormVecNum;
-
-X(1) = testImg(1);
-X(2) = perturbedVec(1);
-Y(1) = testImg(2);
-Y(2) = perturbedVec(2);
-Z(1) = testImg(3);
-Z(2) = perturbedVec(3);
-
-figure
-[xs,ys,zs] = sphere;
-h = surfl(xs, ys, zs);
-colormap([0 0 0])
-set(h, 'FaceAlpha', 0.1);
-shading interp
-hold on
-scatter3(X,Y,Z, [100 100], [1 0 0; 0 1 0], 'o')
-% set(gca,'XLim',[-2 2],'YLim',[-2 2],'ZLim',[-2 2])
-set(gca, 'Projection','perspective')
+% X(1) = testVec(1);
+% X(2) = perturbedVec(1);
+% Y(1) = testVec(2);
+% Y(2) = perturbedVec(2);
+% Z(1) = testVec(3);
+% Z(2) = perturbedVec(3);
+%
+% figure
+% [xs,ys,zs] = sphere;
+% h = surfl(xs, ys, zs);
+% colormap([0 0 0])
+% set(h, 'FaceAlpha', 0.1);
+% shading interp
+% hold on
+% scatter3(X,Y,Z, [100 100], [0 0 1; 1 0 0], 'o')
+% % set(gca,'XLim',[-2 2],'YLim',[-2 2],'ZLim',[-2 2])
+% set(gca, 'Projection','perspective')
 
 
 function y = sigm(z)

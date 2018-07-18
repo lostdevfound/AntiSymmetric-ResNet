@@ -26,8 +26,8 @@ classdef ActivFunc < handle
             elseif strcmp(obj.activ, 'powerlog')
                 y = ActivFunc.powerlog(W, x, b, obj.p, obj.s);
 
-            elseif strcmp(obj.activ, 'cosf')
-                y = ActivFunc.cosf(W, x, b, obj.p, obj.s);
+            elseif strcmp(obj.activ, 'sqrf')
+                y = ActivFunc.sqrf(W, x, b);
             end
         end
 
@@ -43,11 +43,17 @@ classdef ActivFunc < handle
             elseif strcmp(obj.activ, 'powerlog')
                 d = ActivFunc.powerlogD(W, x, b, obj.p, obj.s);
 
-            elseif strcmp(obj.activ, 'cosf')
-                d = ActivFunc.cosfD(W, x, b, obj.p, obj.s);
+            elseif strcmp(obj.activ, 'sqrf')
+                d = ActivFunc.sqrfD(W, x, b);
             end
         end
 
+
+        function dd = activfDD(obj, W, x, b)
+            if strcmp(obj.activ, 'sqrf')
+                dd = ActivFunc.sqrfDD(W,x,b);
+            end
+        end
     end
 
 
@@ -56,13 +62,13 @@ classdef ActivFunc < handle
         function y = powerlog(W, x, b, p, s)
             % vector log(z)^p activation function
             z = W*x+b;
-            y = s*(z >= 0).*log(z/s + 1).^p;
+            y = (z >= 0).*log(z/s + 1).^p;
         end
 
         function d = powerlogD(W, x, b, p, s)
             % vector derivative of powerlogD
             z = W*x+b;
-            d = p*(z >= 0).*(log(z/s +1))./(z/s +1);
+            d = p*(z >= 0) .* log(z/s +1).^(p-1) ./ ((z/s +1)*s);
         end
 
         function y = relu(W, x, b, testmode)
@@ -116,15 +122,20 @@ classdef ActivFunc < handle
         end
 
 
-        function y = cosf(W, x, b, p, s)
+        function y = sqrf(W, x, b)
             z = W*x + b;
-            y = (z >= 0).*cos(p*z - pi)*s + s;
+            y = (z > 0).*z.^(1/2.0);
         end
 
 
-        function d = cosfD(W, x, b, p, s)
+        function d = sqrfD(W, x, b)
             z = W*x + b;
-            d = -(z >= 0).*sin(p*z - pi)*p*s;
+            d = 1/2.0*(z > 0).*z.^(-1/2.0);
+        end
+
+        function d = sqrfDD(W, x, b)
+            z = W*x + b;
+            d = -1/4.0*(z > 0).*z.^(-3/2.0);
         end
 
 

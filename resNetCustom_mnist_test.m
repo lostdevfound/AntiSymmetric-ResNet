@@ -11,55 +11,50 @@ validatimages = validatimages - validMean;
 % Setup NN's params
 h = 1;        % default 0.7
 igamma = 0;       % default 0.1
-trainCycles = 100000;       % default 100000
+trainCycles = 60000;       % default 100000
 eta = 0.002;           % good default 0.0005 or 0.003
-initScaler = 0.01;      % default 0.01
+initScaler = 0.1;      % default 0.01
 n = 20;     %neurons
 layers = 2;
-activ = 'cosf';
-p = -0.2;
-s = 7;
+activ = 'sqrf';
+p = 5;
+s = 2;
 r = 0.003;
 % Set to true if need to retrain
 first_time_launch = true;
 doPerturbation = true;
+doRetrain = true;
 
-% Create multiple neural nets with different params
-% for i=13:numNets
+if first_time_launch == true
+    % Init NN and train it
+    net = ResNetCustom(layers, 784, 10, n, igamma, h, initScaler, false, activ, p, s, r);
+    disp('training...');
+    net.train(trainImages, trainLabels, trainCycles, eta);
+    disp('training complete.');
 
-    % layers = listLayers(i);
-    % neurons = listNeurons(i);
-    % h = listH(i);
+    % Save trained net
+    netStr = {'resources/', activ, '_net_l', num2str(layers), '_h', num2str(h), '_n', num2str(n), '_p', num2str(p), '_s', num2str(s), '_r', num2str(r),'.mat'};
+    [~,numNames] = size(netStr);
 
-    % Training part.
-    if first_time_launch == true
-        % Init NN and train it
-        net = ResNetCustom(layers, 784, 10, n, igamma, h, initScaler, false, activ, p, s, r);
-        disp('training...');
-        net.train(trainImages, trainLabels, trainCycles, eta);
-        disp('training complete.');
-
-        % Save trained net
-        netStr = {'resources/', activ, '_net_l', num2str(layers), '_h', num2str(h), '_n', num2str(n), '_p', num2str(p), '_s', num2str(s), '_r', num2str(r),'.mat'};
-        [~,numNames] = size(netStr);
-
-        str = '';
-        for i=1:numNames
-            str = strcat(str,netStr(i));
-        end
-
-        save(str{1},'net');
-    else
-        load('resources/powerlog_net_l2_h1_n20_p4.5_s2_r0.003.mat');    % Load pretrained AntiSymResNet
+    str = '';
+    for i=1:numNames
+        str = strcat(str,netStr(i));
     end
-% end
+    if doRetrain == true
+        net = retrain(net, trainImages, trainLabels, trainCycles, eta, 1);
+    end
+    save(str{1},'net');
+else
+    load('resources/sqrf_net_l2_h1_n20_r0.003.mat');    % Load pretrained AntiSymResNet
+end
+
 
 
 %
 %              Perturbation part
 %
 normSum = 0;
-samples = 50;
+samples = 30;
 offset=1;
 
 for k = offset:offset + samples

@@ -13,20 +13,23 @@ classdef ResNetCustom < handle
         inputLayerSize;
         outputLayerSize;
         hiddenLayersSize;
+        totalNumLayers;
         W2_lin;
         b2_lin;
         WYN_lin;
         bYN_lin;
-        W;
-        b;
-        totalNumLayers;
+        M;      % Mask for W
+        W;      % Weights
+        b;      % Biases
         O;      % An array of omegas
         DY;     % An array of derivatives dY^(l)/dY^(l-1)
         Y;      % An array Y stores  layer vectors
         D;      % An arrat that stores Delta vectors. Delta represent the derivative of of the CostFunction w.r.t. y^(l)
         f;      % Activation function handle
         df;     % Derivative of an activation function
+        ddf;
         r;      % Regularization parameter
+        C;      % Concavity matrix
     end
 
     methods
@@ -36,6 +39,7 @@ classdef ResNetCustom < handle
             ActivClass = ActivFunc(activFunc, i_testMode, p,s);
             obj.f = @ActivClass.activf;
             obj.df = @ActivClass.activfD;
+            obj.ddf = @ActivClass.activfDD;
             % ResNet constructor
             obj.numHiddenLayers = i_numHiddenLayers;
             obj.inputLayerSize = i_inputLayerSize;
@@ -47,6 +51,8 @@ classdef ResNetCustom < handle
             obj.hIO = h;
             obj.r = r;
             % Init arrays
+            obj.C{1} = 0;
+            obj.M{1} = 1;
             obj.W{1} = 0;
             obj.D{1} = 0;   % Array of gradients dC/dY
             obj.O{1} = 0;   % Array of Omega gradients dY_i^(l)/dW_ij^(l)
@@ -58,6 +64,9 @@ classdef ResNetCustom < handle
             % Build W2, b2 for connections from input layer to first hidden
             W2 = obj.initScaler*normrnd(0,1,[obj.hiddenLayersSize, obj.inputLayerSize]);
             b2 = obj.initScaler*normrnd(0,1,[obj.hiddenLayersSize,1]);
+            obj.W{2} = W2;
+            obj.b{2} = b2;
+            obj.M{2} = ones(size(W2));
 
             obj.W2_lin = obj.initScaler*normrnd(0,1,[obj.hiddenLayersSize, obj.inputLayerSize]);
             obj.b2_lin = obj.initScaler*normrnd(0,1,[obj.hiddenLayersSize,1]);
@@ -65,8 +74,6 @@ classdef ResNetCustom < handle
             obj.WYN_lin = obj.initScaler*normrnd(0,1,[obj.outputLayerSize, obj.hiddenLayersSize]);
             obj.bYN_lin = obj.initScaler*normrnd(0,1,[obj.outputLayerSize,1]);
 
-            obj.W{2} = W2;
-            obj.b{2} = b2;
 
             % gammaMatrix = obj.igamma*eye(obj.hiddenLayersSize );
 
@@ -76,6 +83,7 @@ classdef ResNetCustom < handle
                 b = obj.initScaler*normrnd(0,1,[obj.hiddenLayersSize,1]);
                 obj.W{i} = W;
                 obj.b{i} = b;
+                obj.M{i} = ones(size(W));
             end
 
             % Build W^(L)
@@ -83,6 +91,7 @@ classdef ResNetCustom < handle
             bN = obj.initScaler*normrnd(0,1,[obj.outputLayerSize, 1]);
             obj.W{i + 1} = WN;
             obj.b{i + 1} = bN;
+            obj.M{i + 1} = ones(size(WN));
             [~, obj.totalNumLayers] = size(obj.W);
         end
 
@@ -90,8 +99,9 @@ classdef ResNetCustom < handle
         function result = forwardProp(obj, i_vector)
             % Forward propagation
             YN = obj.totalNumLayers;
+            obj.Y{1} = i_vector;
             % obj.f first hidden layer
-            obj.Y{2} = obj.W2_lin*i_vector + obj.b2_lin + obj.hIO*obj.f(obj.W{2},i_vector,obj.b{2});
+            obj.Y{2} = obj.W2_lin*obj.Y{1} + obj.b2_lin + obj.hIO*obj.f(obj.W{2},obj.Y{1},obj.b{2});
 
             % obj.f other consequent layers
             for i = 3:YN - 1
@@ -161,15 +171,15 @@ classdef ResNetCustom < handle
                 obj.bYN_lin = obj.bYN_lin - eta*obj.D{YN};
 
                 % Update ReLu weights and biases for layer 2 and YN
-                obj.W{2} = obj.W{2} - eta * (obj.h*obj.D{2}.* obj.df(obj.W{2}, i_vector, obj.b{2})* i_vector' + obj.r*obj.W{2});
+                obj.W{2} = obj.W{2} - eta *obj.M{2}.*(obj.h*obj.D{2}.* obj.df(obj.W{2}, i_vector, obj.b{2})* i_vector' + obj.r*obj.W{2});
                 obj.b{2} = obj.b{2} - eta* obj.h* obj.D{2} .* obj.df(obj.W{2}, i_vector,obj.b{2});
 
-                obj.W{YN} = obj.W{YN} - eta * (obj.O{YN} + obj.r*obj.W{YN});
+                obj.W{YN} = obj.W{YN} - eta * obj.M{YN}.*(obj.O{YN} + obj.r*obj.W{YN});
                 obj.b{YN} = obj.b{YN} - eta* obj.h* obj.D{YN} .* obj.df(obj.W{YN}, obj.Y{YN-1}, obj.b{YN});
 
                 % Update intermediate layers
                 for i = 3:YN-1
-                    obj.W{i} = obj.W{i} - eta *(diag(obj.D{i})*obj.O{i} + obj.r*obj.W{i});
+                    obj.W{i} = obj.W{i} - eta* obj.M{i} .* (diag(obj.D{i})*obj.O{i} + obj.r*obj.W{i});
                     obj.b{i} = obj.b{i} - eta* obj.h* obj.D{i} .* obj.df(obj.W{i}, obj.Y{i-1}, obj.b{i});
                 end
 
@@ -179,7 +189,7 @@ classdef ResNetCustom < handle
 
         %  Compute derivate dY^(L)/dX
         function dYdX = computedYdX(obj, i_vector)
-            % TODO need to change this cause y^(L) and y^(l2) are changed
+            % TODO need to calculations cause y^(L) and y^(l2) are changed
             disp('this method needs to be changed cause y^(2) and y^(L) were modified')
             YN = obj.totalNumLayers;
 
@@ -196,6 +206,7 @@ classdef ResNetCustom < handle
         end
 
         % Adversarial back prop
+        % TODO Make this as a separate algorithm
         function perturbedVector = adversBackProp(obj, i_vector,label_vector,eta)
             % Gradient w.r.t the i_vector
             backProp(obj, i_vector, label_vector, eta, false);
@@ -244,6 +255,12 @@ classdef ResNetCustom < handle
         end
 
 
+        function concav = computeConcavityW(obj, id)
+            % This function computes second derivative of w_{ij}
+            concav = obj.h * diag(obj.D{id}) * obj.ddf(obj.W{id}, obj.Y{id-1}, obj.b{id}) * (obj.Y{id-1}.^2)';
+            obj.C{id} = concav;
+        end
+
         function delta = getDelta(obj, id)
             delta = obj.D{id};
         end
@@ -286,15 +303,17 @@ classdef ResNetCustom < handle
     end
 end
 
-
+% TODO replace this with the class function
 function resSoft = softmax(y, y_args)
     % This function computes softmax
     y_argsSum = 0;
     inputSize = max(size(y_args));
 
+    D = -max(y_args);   % constant D for numerical stability
+
     for i = 1:inputSize
-        y_argsSum = y_argsSum + exp(y_args(i));
+        y_argsSum = y_argsSum + exp(y_args(i) + D);
     end
 
-    resSoft = exp(y) / y_argsSum;
+    resSoft = exp(y + D) / y_argsSum;
 end

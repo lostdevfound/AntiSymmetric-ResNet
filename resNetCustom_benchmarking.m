@@ -10,7 +10,7 @@ validMean = mean(validatimages(:,1:end),2);
 trainImages = trainImages - trainMean;
 validatimages = validatimages - validMean;
 
-load('/home/user1/Documents/ML/matlab/AntiSymResNet/resources/sigmoid_net_l2_h1_n20_p4.5_s2_r0.003.mat')
+load('/home/user1/Documents/ML/matlab/AntiSymResNet/resources/relu_net_l2_h1_n20_r0.003.mat')
 
 % Training and Validation costs and errors
 trainingCost = 0;
