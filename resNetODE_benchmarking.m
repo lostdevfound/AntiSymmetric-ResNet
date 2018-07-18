@@ -15,8 +15,8 @@ validLabelSet = labelSet(:,25001:30000);
 validDataSet = dataSet(:,25001:30000);
 
 
-% load('resources/ODE_net_l20_h0.5_ig0.0001_n3.mat')
-load('resources/softmax_net_l10_h0.2_n3.mat')
+load('resources/ODE_net_l20_h0.5_ig0.0001_n3.mat')
+% load('resources/softmax_net_l10_h0.2_n3.mat')
 % Training and Validation costs and errors
 trainingCost = 0;
 generalizationCost = 0;
