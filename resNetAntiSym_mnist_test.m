@@ -10,7 +10,7 @@ validatimages = validatimages - validMean;
 
 % Setup NN's params
 igamma = 0.1;               % default 0.1
-trainCycles = 500000;       % default 400000
+trainCycles = 400000;       % default 400000
 eta = 0.002;                % good default 0.0005 or 0.003
 initScaler = 0.01;          % default 0.01
 neurons = 70;
@@ -24,7 +24,7 @@ s = 1;
 
 
 % Set to true if need to retrain
-first_time_launch = false;
+first_time_launch = true;
 doPerturbation = true;
 
 % Training part.
@@ -36,7 +36,7 @@ if first_time_launch == true
     disp('training complete.');
 
     % Save trained net
-    netStr = {'resources/', 'antisym_', activFunc, '_net_l', num2str(layers), '_h', num2str(h), '_n', num2str(neurons), '_p', num2str(p), '_s', num2str(s), '_r', num2str(r),'_gamma',num2str(igamma),'.mat'};
+    netStr = {'resources/', 'antisym_', activFunc, '_net_l', num2str(layers), '_h', num2str(h), '_n', num2str(neurons), '_p', num2str(p), '_s', num2str(s), '_r', num2str(regular),'_gamma',num2str(igamma),'.mat'};
     [~,numNames] = size(netStr);
 
     str = '';
