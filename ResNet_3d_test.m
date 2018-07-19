@@ -10,13 +10,13 @@ validLabelSet = labelSet(:,10001:30000);
 validDataSet = dataSet(:,10001:30000);
 
 % Setup NN's params
-NN_type = 'ODE';            % ODE or Custom where Custom is a regular ResNet
+NN_type = 'Custom';            % ODE or Custom where Custom is a regular ResNet
 igamma = 0.0001;            % default 0.0001
 trainCycles = 200000;       % default 400000
 eta = 0.01;                 % good default 0.003
 initScaler = 1;             % default 0.01
 neurons = 3;
-layers = 20;
+layers = 10;
 h = 0.5;
 activFunc = 'relu';
 regular = 0;
@@ -34,12 +34,12 @@ doPerturbation = true;
 
 if first_time_launch == true
     % Init NN and train it. Params i_numHiddenLayers, i_inputLayerSize, i_outputLayerSize, i_hiddenLayersSize, i_gamma, h, initScaler, i_testMode
-    if NN_type == 'ODE'
+    if strcmp(NN_type, 'ODE')
         disp('training...'); disp(NN_type);
         net = ResNetAntiSymODE(layers, 3, 3, neurons, igamma, h, initScaler, false, activFunc, regular, p, s);
-    elseif NN_type == 'Custom'
+    elseif strcmp(NN_type, 'Custom')
         disp('training...'); disp(NN_type);
-        net = ResNetCustom(layers, 3, 3, neurons, igamma, h, initScaler, false, activFunc, regular, p, s);
+        net = ResNetCustom(layers, 3, 3, neurons, h, initScaler, false, activFunc, p, s, regular);
     end
 
     net.train(trainDataSet, trainLabelSet, trainCycles, eta);
@@ -57,7 +57,7 @@ if first_time_launch == true
     save(str{1},'net');
 else
 
-    load('resources/ODE_net_l20_h0.5_ig0.0001_n3.mat')
+    load('resources/ODE_relu_net_l20_h0.5_n3_p1_s1_r0_gamma0.0001.mat')
     % load('resources/softmax_net_l10_h0.2_n3.mat')
 end
 

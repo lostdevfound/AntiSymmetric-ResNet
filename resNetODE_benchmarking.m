@@ -8,15 +8,16 @@ clear;
 load('resources/data3d/data3d.mat');
 load('resources/data3d/label3d.mat');
 
-trainLabelSet = labelSet(:,1:25000);
-trainDataSet = dataSet(:,1:25000);
+trainLabelSet = labelSet(:,1:10000);
+trainDataSet = dataSet(:,1:10000);
 
-validLabelSet = labelSet(:,25001:30000);
-validDataSet = dataSet(:,25001:30000);
+validLabelSet = labelSet(:,10001:30000);
+validDataSet = dataSet(:,10001:30000);
 
 
 load('resources/ODE_relu_net_l20_h0.5_n3_p1_s1_r0_gamma0.0001.mat')
 % load('resources/Custom_relu_net_l20_h0.5_n3_p1_s1_r0_gamma0.0001.mat')
+
 % Training and Validation costs and errors
 trainingCost = 0;
 generalizationCost = 0;
@@ -27,8 +28,8 @@ lowerBound = 0.2;       % def for toynet 0.2
 disp('benchmarking running...');
 
 
-trainCycles = 25000;
-validCycles = 5000;
+trainCycles = 10000;
+validCycles = 20000;
 
 % Training benchmarking
 for i=1:trainCycles
