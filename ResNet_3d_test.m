@@ -10,14 +10,14 @@ validLabelSet = labelSet(:,10001:30000);
 validDataSet = dataSet(:,10001:30000);
 
 % Setup NN's params
-NN_type = 'ODE';       % ODE or Custom where Custom is a regular ResNet
-igamma = 0.0001;       % default 0.0001
-trainCycles = 500000;       % default 400000
-eta = 0.01;            % good default 0.003
-initScaler = 1;        % default 0.01
+NN_type = 'ODE';            % ODE or Custom where Custom is a regular ResNet
+igamma = 0.0001;            % default 0.0001
+trainCycles = 200000;       % default 400000
+eta = 0.01;                 % good default 0.003
+initScaler = 1;             % default 0.01
 neurons = 3;
 layers = 20;
-h = 0.1;
+h = 0.5;
 activFunc = 'relu';
 regular = 0;
 p = 1;

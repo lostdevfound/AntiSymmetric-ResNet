@@ -127,7 +127,7 @@ classdef ResNetAntiSymODE < handle
             if updateWeights == true
                 % Gradient step. Update weights and biases
                 for i = 2:YN
-                    obj.W{i} = obj.W{i} - eta * 0.5*(diag(obj.D{i})*obj.O{i} - (diag(obj.D{i})*obj.O{i})');
+                    obj.W{i} = obj.W{i} - eta * 0.5*(diag(obj.D{i})*obj.O{i} - (diag(obj.D{i})*obj.O{i})') - eta*obj.r*(obj.W{i} - obj.W{i}');
                     obj.b{i} = obj.b{i} - eta* obj.h* obj.D{i} .* obj.df(obj.W{i}, obj.Y{i-1}, obj.b{i});
                 end
             end

@@ -143,13 +143,14 @@ classdef ActivFunc < handle
             % This function computes softmax
             y_argsSum = 0;
             inputSize = max(size(y_args));
-
+            C = max(y_args);
+            
             for i = 1:inputSize
-                y_argsSum = y_argsSum + exp(y_args(i));
+                y_argsSum = y_argsSum + exp(y_args(i) - C);
             end
 
             for i = 1:inputSize
-                resSoft(i) = exp(y_args(i)) / y_argsSum;
+                resSoft(i) = exp(y_args(i) - C) / y_argsSum;
             end
         end
     end
