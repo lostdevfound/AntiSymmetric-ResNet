@@ -25,7 +25,7 @@ s = 1;
 
 
 % Set to true if need to retrain
-first_time_launch = true;
+first_time_launch = false;
 doPerturbation = true;
 
 %                                           %
@@ -58,7 +58,7 @@ if first_time_launch == true
 else
 
     load('resources/ODE_relu_net_l20_h0.5_n3_p1_s1_r0_gamma0.0001.mat')
-    % load('resources/softmax_net_l10_h0.2_n3.mat')
+%     load('resources/Custom_relu_net_l10_h0.5_n3_p1_s1_r0_gamma0.0001.mat')
 end
 
 %                                           %
@@ -66,10 +66,10 @@ end
 %                                           %
 
 normSum = 0;
-samples = 50;
+samples = 150;
 offset= 4;
 label = 0;
-breakCount = 20000;
+breakCount = 10000;
 
 foolCount = 0;
 onenormVecNum = 0;
@@ -79,9 +79,10 @@ for k = offset:offset + samples
     index = k;     % Pick some image by its index (digit 3 is index 33)
     testVec =  validDataSet(:,index);
     [~,labelIndex] = max(validLabelSet(:,index));
-
+    [~, predictionInd] = max(net.forwardProp(testVec));
     % Skip vectors that lie outside the sphere
-    if labelIndex == 2
+
+    if labelIndex == 2 || predictionInd ~= labelIndex
         disp('skipping');
         continue;
     else
@@ -96,7 +97,7 @@ for k = offset:offset + samples
 
     while doPerturbation == true
         net.forwardProp(perturbedVec);
-        perturbedVec = net.adversBackProp(perturbedVec,validLabelSet(:,index), 0.01);
+        perturbedVec = net.adversBackProp(perturbedVec,validLabelSet(:,index), 0.03);
         classifRes = ActivFunc.softmax(net.forwardProp(perturbedVec));
 
         [prediction,predictionInd] = max(classifRes);

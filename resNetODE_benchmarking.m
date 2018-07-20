@@ -15,8 +15,8 @@ validLabelSet = labelSet(:,10001:30000);
 validDataSet = dataSet(:,10001:30000);
 
 
-load('resources/ODE_relu_net_l20_h0.5_n3_p1_s1_r0_gamma0.0001.mat')
-% load('resources/Custom_relu_net_l20_h0.5_n3_p1_s1_r0_gamma0.0001.mat')
+% load('resources/ODE_relu_net_l20_h0.5_n3_p1_s1_r0_gamma0.0001.mat')
+load('resources/Custom_relu_net_l10_h0.5_n3_p1_s1_r0_gamma0.0001.mat')
 
 % Training and Validation costs and errors
 trainingCost = 0;
