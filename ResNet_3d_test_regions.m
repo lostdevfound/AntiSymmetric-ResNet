@@ -32,6 +32,8 @@ function [X,Y,Z,V] = slicePlane(a, b, c,d, net, resolution)
         x_plane = X(:);
         y_plane = Y(:);
         z_plane = Z(:);
+    else 
+        disp('c can't be zero.')
     end
 
     for i_point = 1:length(x_plane)
