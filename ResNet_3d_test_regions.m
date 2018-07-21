@@ -2,7 +2,7 @@ clear;clc;close all;
 load('resources/ODE_relu_net_l20_h0.5_n3_p1_s1_r0_gamma0.0001.mat')
 % load('resources/Custom_relu_net_l10_h0.5_n3_p1_s1_r0_gamma0.0001.mat')
 
-a = 0; b = 0; c = 1; d = 0.8; resolution = 50;
+a = 0; b = 1; c = 1; d = 0; resolution = 100;
 
 [X,Y,Z,V] = slicePlane(a,b,c,d,net, resolution);
 surfPlot = surf(X,Y,Z,V,'FaceAlpha',0.3);
@@ -33,7 +33,7 @@ function [X,Y,Z,V] = slicePlane(a, b, c,d, net, resolution)
         y_plane = Y(:);
         z_plane = Z(:);
     else 
-        disp('c can't be zero.')
+        disp('c can''t be zero.')
     end
 
     for i_point = 1:length(x_plane)

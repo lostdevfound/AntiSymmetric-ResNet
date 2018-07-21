@@ -125,7 +125,6 @@ classdef ResNetCustom < handle
             end
             % preprocess inputs
             label_vector = label_vector(:);
-            i_vector = i_vector(:);
             
             % Back propagation. Inputs: self, training vector, label vector, learning rate eta, updateWeights: true/false
             YN = obj.totalNumLayers;

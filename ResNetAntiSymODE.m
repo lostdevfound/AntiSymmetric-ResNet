@@ -107,26 +107,27 @@ classdef ResNetAntiSymODE < handle
                 end
             end
 
-            % Calculate the last layer error gradient dC/dY^(L)
-            obj.D{YN} = dh' * (-label_vector ./ h_vec');
+            % Calculate the last layer error gradient dC/dY^(L) (CHECKED)
+            obj.D{YN} = dh' * (-label_vector ./ h_vec'); 
             % Calculate the last layer weights gradient dY^(L)/dW^(L)
             obj.O{YN} = obj.h * obj.df(obj.W{YN},obj.Y{YN-1}, obj.b{YN}) * obj.Y{YN-1}';
 
             % Calculate error gradient for L-1, L-2,..., 2 layers
             for i = YN-1:-1:2
-                % Compute delta
+                % Compute delta (CHECKED)
                 obj.D{i} = obj.D{i+1} + obj.W{i+1}'*( obj.D{i+1} .* (obj.h*obj.df(obj.W{i+1},obj.Y{i},obj.b{i+1})) );
                 % Compute omega
                 obj.O{i} = obj.h * obj.df(obj.W{i},obj.Y{i-1}, obj.b{i}) * obj.Y{i-1}';
             end
 
-            % Compute gradient dC/dX
+            % Compute gradient dC/dX (CHECKED)
             obj.D{1} = obj.D{2} + obj.h*obj.W{2}' * (obj.D{2} .* obj.df(obj.W{2}, i_vector, obj.b{2}));
             backresult = obj.D{1};  % return dC/dX
 
             if updateWeights == true
                 % Gradient step. Update weights and biases
                 for i = 2:YN
+                    %%%%%% MISTAKE HERE??
                     obj.W{i} = obj.W{i} - eta * 0.5*(diag(obj.D{i})*obj.O{i} - (diag(obj.D{i})*obj.O{i})') - eta*obj.r*(obj.W{i} - obj.W{i}');
                     obj.b{i} = obj.b{i} - eta* obj.h* obj.D{i} .* obj.df(obj.W{i}, obj.Y{i-1}, obj.b{i});
                 end
