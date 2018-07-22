@@ -21,13 +21,15 @@ classdef ResNetAntiSymODE < handle
         f;      % Activation function handle
         df;     % Derivative of an activation function
         ddf;    % Second derivative of an activation function
-        W;
+        K;      % Weights for W
+        W;      % Function of K, final weights
         b;
         totalNumLayers;
         O;      % An array of omegas
         DY;     % An array of derivatives dY^(l)/dY^(l-1)
         Y;      % An array Y stores  layer vectors
         D;      % An arrat that stores Delta vectors. Delta represent the derivative of of the CostFunction w.r.t. y^(l)
+        G;      % Gamme matrix
     end
 
     methods
@@ -50,6 +52,7 @@ classdef ResNetAntiSymODE < handle
             obj.h = h;
             obj.hIO = h;
             % Init arrays
+            obj.K{1} = 0;
             obj.D{1} = 0;   % Array of gradients dC/dY
             obj.O{1} = 0;   % Array of Omega gradients dY_i^(l)/dW_ij^(l)
             obj.Y{1} = 0;   % Array of forward pass layers Y
@@ -57,12 +60,12 @@ classdef ResNetAntiSymODE < handle
             obj.Y{2} = zeros(obj.hiddenLayersSize, 1);    % init array Y as vector with all enries 0
             obj.D{2} = zeros(obj.hiddenLayersSize, 1);    % init array D as vector with all enries 0
 
-            gammaMatrix = obj.igamma * eye(obj.hiddenLayersSize);
+            obj.G = obj.igamma * eye(obj.hiddenLayersSize);
 
             % Build intermediate W and b
             for i = 2:obj.numHiddenLayers + 1
-                K = obj.initScaler*normrnd(0,1,[obj.hiddenLayersSize, obj.hiddenLayersSize]);
-                W = 0.5*(K - K' - gammaMatrix);
+                obj.K{i} = obj.initScaler*normrnd(0,1,[obj.hiddenLayersSize, obj.hiddenLayersSize]);
+                W = 0.5*(obj.K{i} - obj.K{i}' - obj.G);
                 b = obj.initScaler*normrnd(0,1,[obj.hiddenLayersSize,1]);
                 obj.W{i} = W;
                 obj.b{i} = b;
@@ -108,7 +111,7 @@ classdef ResNetAntiSymODE < handle
             end
 
             % Calculate the last layer error gradient dC/dY^(L) (CHECKED)
-            obj.D{YN} = dh' * (-label_vector ./ h_vec'); 
+            obj.D{YN} = dh' * (-label_vector ./ h_vec');
             % Calculate the last layer weights gradient dY^(L)/dW^(L)
             obj.O{YN} = obj.h * obj.df(obj.W{YN},obj.Y{YN-1}, obj.b{YN}) * obj.Y{YN-1}';
 
@@ -127,8 +130,8 @@ classdef ResNetAntiSymODE < handle
             if updateWeights == true
                 % Gradient step. Update weights and biases
                 for i = 2:YN
-                    %%%%%% MISTAKE HERE??
-                    obj.W{i} = obj.W{i} - eta * 0.5*(diag(obj.D{i})*obj.O{i} - (diag(obj.D{i})*obj.O{i})') - eta*obj.r*(obj.W{i} - obj.W{i}');
+                    obj.K{i} = obj.K{i} - eta * 0.5*(diag(obj.D{i})*obj.O{i} - (diag(obj.D{i})*obj.O{i})') - eta*obj.r*(obj.W{i} - obj.W{i}');
+                    obj.W{i} = 0.5*(obj.K{i} - obj.K{i}' - obj.G);
                     obj.b{i} = obj.b{i} - eta* obj.h* obj.D{i} .* obj.df(obj.W{i}, obj.Y{i-1}, obj.b{i});
                 end
             end

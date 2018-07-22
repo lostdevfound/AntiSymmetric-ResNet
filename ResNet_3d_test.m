@@ -10,13 +10,13 @@ validLabelSet = labelSet(:,10001:30000);
 validDataSet = dataSet(:,10001:30000);
 
 % Setup NN's params
-NN_type = 'Custom';            % ODE or Custom where Custom is a regular ResNet
+NN_type = 'ODE';            % ODE or Custom where Custom is a regular ResNet
 igamma = 0.0001;            % default 0.0001
-trainCycles = 200000;       % default 400000
+trainCycles = 500000;       % default 400000
 eta = 0.01;                 % good default 0.003
 initScaler = 1;             % default 0.01
 neurons = 3;
-layers = 10;
+layers = 20;
 h = 0.5;
 activFunc = 'relu';
 regular = 0;
@@ -25,7 +25,7 @@ s = 1;
 
 
 % Set to true if need to retrain
-first_time_launch = false;
+first_time_launch = true;
 doPerturbation = true;
 
 %                                           %
