@@ -65,10 +65,8 @@ classdef ResNetAntiSymODE < handle
             % Build intermediate W and b
             for i = 2:obj.numHiddenLayers + 1
                 obj.K{i} = obj.initScaler*normrnd(0,1,[obj.hiddenLayersSize, obj.hiddenLayersSize]);
-                W = 0.5*(obj.K{i} - obj.K{i}' - obj.G);
-                b = obj.initScaler*normrnd(0,1,[obj.hiddenLayersSize,1]);
-                obj.W{i} = W;
-                obj.b{i} = b;
+                obj.W{i} = 0.5*(obj.K{i} - obj.K{i}' - obj.G);
+                obj.b{i} = obj.initScaler*normrnd(0,1,[obj.hiddenLayersSize,1]);
             end
 
             obj.totalNumLayers = i;
@@ -78,10 +76,9 @@ classdef ResNetAntiSymODE < handle
         function result = forwardProp(obj, i_vector)
             % Forward propagation
             YN = obj.totalNumLayers;
-            % obj.f first hidden layer
-            obj.Y{2} = i_vector + obj.hIO*obj.f(obj.W{2},i_vector,obj.b{2});
-            % obj.f all remaining layers
-            for i=3:YN
+            obj.Y{1} = i_vector;
+
+            for i=2:YN
                 obj.Y{i} = obj.Y{i-1} + obj.h*obj.f(obj.W{i},obj.Y{i-1},obj.b{i});
             end
 
@@ -154,14 +151,6 @@ classdef ResNetAntiSymODE < handle
 
             obj.DY{1} = obj.DY{2} * obj.W{2} + obj.DY{2} * (obj.W{2} .* ( obj.h*obj.df(obj.W{2}, i_vector, obj.b{2})) );
             dYdX = obj.DY{1};
-        end
-
-        % Adversarial back prop
-        function perturbedVector = adversBackProp(obj, i_vector,label_vector,eta)
-            % Gradient w.r.t the i_vector
-            backProp(obj, i_vector, label_vector, eta, false);
-            perturbator = eta*obj.D{1};
-            perturbedVector = i_vector + perturbator;
         end
 
 
@@ -241,5 +230,10 @@ classdef ResNetAntiSymODE < handle
             end
         end
 
+        function arrayY = getArrayY(obj)
+            for i=1:obj.totalNumLayers
+                arrayY{i} = obj.Y{i};
+            end
+        end
     end
 end

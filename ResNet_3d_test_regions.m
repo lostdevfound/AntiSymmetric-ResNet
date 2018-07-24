@@ -1,5 +1,5 @@
 clear;clc;close all;
-load('resources/ODE_relu_net_l20_h0.5_n3_p1_s1_r0_gamma0.0001.mat')
+load('resources/ODE_relu_net_l15_h0.1_n3_p1_s1_r0_gamma0.0001.mat');
 % load('resources/Custom_relu_net_l10_h0.5_n3_p1_s1_r0_gamma0.0001.mat')
 
 a = 0; b = 0; c = 1; d = -1; resolution = 100;

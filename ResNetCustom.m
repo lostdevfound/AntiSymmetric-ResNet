@@ -126,7 +126,7 @@ classdef ResNetCustom < handle
             % preprocess inputs
             label_vector = label_vector(:);
             i_vector = i_vector(:);
-            
+
             % Back propagation. Inputs: self, training vector, label vector, learning rate eta, updateWeights: true/false
             YN = obj.totalNumLayers;
 
@@ -210,15 +210,6 @@ classdef ResNetCustom < handle
 
             obj.DY{1} = obj.DY{2} * obj.W{2} + obj.DY{2} * (obj.W{2} .* ( obj.h*obj.df(obj.W{2}, i_vector, obj.b{2})) );
             dYdX = obj.DY{1};
-        end
-
-        % Adversarial back prop
-        % TODO Make this as a separate algorithm
-        function perturbedVector = adversBackProp(obj, i_vector,label_vector,eta)
-            % Gradient w.r.t the i_vector
-            backProp(obj, i_vector, label_vector, eta, false);
-            perturbator = eta*obj.D{1};
-            perturbedVector = i_vector + perturbator;
         end
 
 

@@ -56,42 +56,20 @@ end
 normSum = 0;
 samples = 0;
 offset=43;
+pertCycles = 10000;
+pert_eta = 0.01;
 
 for k = offset:offset + samples
     % Pick image then forwardProp image and print result in the console.
     index = k;     % Pick some image by its index (digit 3 is index 33)
     testImg =  validatimages(:,index);
-    [~,digitNumber] = max(validatLabels(:,index));
-
-    perturbedImg = testImg;
-    classifRes = ones(10,1);
+    labelVec = validatLabels(:,index);
 
     noisyImg = min(testImg + 0.5*rand(784,1), 1);   % limit the range from 0 to 1
 
     % Perturbation generation
-    count = 0;
-    breakCount = 5000;
+    [peturbation, perturbedImg] = PA(net, testImg, labelVec, pert_eta, pertCycles);
 
-    while doPerturbation == true
-        net.forwardProp(perturbedImg);
-        perturbedImg = net.adversBackProp(perturbedImg,validatLabels(:,index), 0.01);
-        classifRes = ActivFunc.softmax(net.forwardProp(perturbedImg));
-
-        [prediction,maxInd] = max(classifRes);
-
-        % Break if correct classif index is not max
-        if maxInd ~= digitNumber
-            break;
-
-        elseif count > breakCount
-            perturbedImg = testImg;
-            samples = samples -1;
-            disp('breaking...........');
-            break;
-        end
-
-        count = count + 1;
-    end
     absNormOfPerturbation = norm(perturbedImg - testImg);
     relNormOfPerturbation = norm(perturbedImg - testImg)/norm(testImg);
     normSum = normSum + relNormOfPerturbation;

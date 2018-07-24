@@ -141,23 +141,25 @@ classdef ActivFunc < handle
 
         function resSoft = softmax(y_args)
             % This function computes softmax
-            
+
             if min(size(y_args)) ~= 1
                 error('input is not a vector in softmax')
             end
-            
+
             % Vectorized version
-            %resSoft = exp(y_args) / (sum(exp(y_args))); 
-            
-            inputSize = length(y_args);
-            C = max(y_args);            
-            y_argsSum = 0;
-            for i = 1:inputSize
-                y_argsSum = y_argsSum + exp(y_args(i) - C);
-            end
-            for i = 1:inputSize
-                resSoft(i) = exp(y_args(i) - C) / y_argsSum;
-            end
+            C = max(y_args);
+            resSoft = exp(y_args - C) / (sum(exp(y_args -C)));
+            resSoft = resSoft';
+
+            % inputSize = length(y_args);
+            % C = max(y_args);
+            % y_argsSum = 0;
+            % for i = 1:inputSize
+            %     y_argsSum = y_argsSum + exp(y_args(i) - C);
+            % end
+            % for i = 1:inputSize
+            %     resSoft(i) = exp(y_args(i) - C) / y_argsSum;
+            % end
         end
     end
 end

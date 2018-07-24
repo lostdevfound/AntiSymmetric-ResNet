@@ -21,7 +21,7 @@ p = 5;
 s = 2;
 r = 0.003;
 
-first_time_launch = true;
+first_time_launch = false;
 doPerturbation = true;
 %                                           %
 %              Training part                %
@@ -44,7 +44,7 @@ if first_time_launch == true
     end
     save(str{1},'net');
 else
-    load('resources/sqrf_net_l2_h1_n20_r0.003.mat');    % Load pretrained AntiSymResNet
+    load('resources/custom_relu_net_l2_h1_n20_r0.003.mat');    % Load pretrained AntiSymResNet
 end
 
 
@@ -53,47 +53,21 @@ end
 %              Perturbation part            %
 %                                           %
 normSum = 0;
-samples = 30;
-offset=1;
+samples = 1;
+offset=3;
+pert_eta = 0.01;
+pertCycles = 10000;
 
 for k = offset:offset + samples
     % Pick image then forwardProp image and print result in the console.
     index = k;     % Pick some image by its index (digit 3 is index 33)
     testImg =  validatimages(:,index);
-    [~,digitNumber] = max(validatLabels(:,index));
+    labelVec = validatLabels(:,index);
 
-    perturbedImg = testImg;
-    classifRes = ones(10,1);
+    noisyImg = min(testImg + 0.3*rand(784,1), 1);   % limit the range from 0 to 1
 
-    noisyImg = min(testImg + 0.5*rand(784,1), 1);   % limit the range from 0 to 1
+    [peturbation, perturbedImg] = PA(net, testImg, labelVec, pert_eta, pertCycles);
 
-    % Perturbation generation
-    count = 0;
-    breakCount = 10000;
-
-    while classifRes(digitNumber) > 0 && doPerturbation == true
-        net.forwardProp(perturbedImg);
-        perturbedImg = net.adversBackProp(perturbedImg,validatLabels(:,index), 0.02);   % def 0.02
-        classifRes = softmax(net.forwardProp(perturbedImg));
-
-        [prediction,maxInd] = max(classifRes);
-
-        % Break if correct classif index is not max
-        if maxInd ~= digitNumber
-            disp('fooled');
-            break;
-
-        elseif count > breakCount
-            perturbedImg = testImg;
-            samples = samples -1;
-            disp('breaking...........');disp('sample number:');disp(k);
-            [classifRes',validatLabels(:,index)]
-            break;
-        end
-
-        count = count + 1;
-    end
-%     absNormOfPerturbation = norm(perturbedImg - testImg)
     relNormOfPerturbation = norm(perturbedImg - testImg)/norm(testImg);
     normSum = normSum + relNormOfPerturbation;
 end
@@ -101,9 +75,9 @@ end
 RelativeAvgNorm = normSum/(samples+1)
 
 % Classify images
-classificationResultPerturb = softmax(net.forwardProp(perturbedImg))';
-classificationResultOrig = softmax(net.forwardProp(testImg))';
-classificationResultNoisy = softmax(net.forwardProp(noisyImg))';
+classificationResultPerturb = ActivFunc.softmax(net.forwardProp(perturbedImg))';
+classificationResultOrig = ActivFunc.softmax(net.forwardProp(testImg))';
+classificationResultNoisy = ActivFunc.softmax(net.forwardProp(noisyImg))';
 results = [classificationResultPerturb, classificationResultOrig, classificationResultNoisy]
 
 % Didsplay picked image
@@ -125,25 +99,3 @@ noisyImg = noisyImg + validMean;
 digitNoise = reshape(noisyImg, [28,28]);    % row = 28 x 28 image
 imshow(digitNoise*255,[0 255])      % show the image
 title('random noise');
-
-
-
-function y = sigm(z)
-    % sigmoid activation function.
-    y = 1./(1+exp(-z));
-end
-
-
-function resSoft = softmax(y_args)
-    % This function computes softmax
-    y_argsSum = 0;
-    inputSize = max(size(y_args));
-
-    for i = 1:inputSize
-        y_argsSum = y_argsSum + exp(y_args(i));
-    end
-
-    for i = 1:inputSize
-        resSoft(i) = exp(y_args(i)) / y_argsSum;
-    end
-end
