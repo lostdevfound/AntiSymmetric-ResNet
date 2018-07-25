@@ -135,8 +135,8 @@ classdef ResNetCustom < handle
 
             % Build dh/dY^(L) matrix, i.e deriv of softmax h w.r.t y^(L)
             dh = [];
-            for i =1:obj.outputLayerSize;
-                for j=1:obj.outputLayerSize;
+            for i =1:obj.outputLayerSize
+                for j=1:obj.outputLayerSize
                     if i==j
                         dh(i,j) = h_vec(i)*(1-h_vec(j));
                     else
@@ -236,12 +236,12 @@ classdef ResNetCustom < handle
                 % Display stats
                 if mod(i, numSamples) == 0
                     progress = 100*i / cycles;
-                    classifRes=[softY',c]
+                    classifRes=[softY',c];
                     signalY = [obj.matrixY];
-                    minMaxSignalY = [min(signalY);max(signalY)]
+                    minMaxSignalY = [min(signalY);max(signalY)];
                     costAvg = costAvg / double(numSamples);
                     disp(['average cost over ', num2str(numSamples, '%0d'),' samples: ', num2str(costAvg, '%0.3f'),' progress: ', num2str(progress)]);
-                    weightNorms = obj.weightNorms()
+                    weightNorms = obj.weightNorms();
                     costAvg = 0;
                 end
 

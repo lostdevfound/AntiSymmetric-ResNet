@@ -25,9 +25,12 @@ classdef ActivFunc < handle
 
             elseif strcmp(obj.activ, 'powerlog')
                 y = ActivFunc.powerlog(W, x, b, obj.p, obj.s);
-
+                
             elseif strcmp(obj.activ, 'sqrf')
                 y = ActivFunc.sqrf(W, x, b);
+                
+            elseif strcmp(obj.activ, 'tan_h')
+                y = ActivFunc.tan_h(W, x, b);
             end
         end
 
@@ -42,9 +45,12 @@ classdef ActivFunc < handle
 
             elseif strcmp(obj.activ, 'powerlog')
                 d = ActivFunc.powerlogD(W, x, b, obj.p, obj.s);
-
+                
             elseif strcmp(obj.activ, 'sqrf')
                 d = ActivFunc.sqrfD(W, x, b);
+                
+            elseif strcmp(obj.activ, 'tan_h')
+                d = ActivFunc.tan_hD(W, x, b);
             end
         end
 
@@ -91,6 +97,7 @@ classdef ActivFunc < handle
             if testmode == true
                 d = 1;    % this is for testing without max() operator
             else
+                %d = 0.5*(sign(W*x+b)+1)+leak*(W*x+b<0);
                 d = W*x + b >= 0;
                 d(d==0) = leak;
             end
@@ -136,6 +143,16 @@ classdef ActivFunc < handle
         function d = sqrfDD(W, x, b)
             z = W*x + b;
             d = -1/4.0*(z > 0).*z.^(-3/2.0);
+        end
+        
+        function y = tan_h(W, x, b)
+            % vector hyperbolic tangent activation function.
+            y = tanh(W*x+b);
+        end
+        
+        function y = tan_hD(W, x, b)
+            % derivative of vector hyperbolic tangent activation function.
+            y = sech(W*x+b).^2;
         end
 
 

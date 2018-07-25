@@ -7,26 +7,26 @@ trainLabelSet = labelSet(:,1:10000);
 trainDataSet = dataSet(:,1:10000);
 
 validLabelSet = labelSet(:,10001:30000);
-validDataSet = dataSet(:,10001:30000);
+validDataSet  = dataSet(:,10001:30000);
 
 % Setup NN's params
-NN_type = 'ODE';            % ODE or Custom where Custom is a regular ResNet
-igamma = 0.0001;            % default 0.0001
-trainCycles = 500000;       % default 400000
-eta = 0.1;                 % good default 0.003
-initScaler = 1;             % default 0.01
+NN_type = 'ODE';          % ODE or Custom where Custom is a regular ResNet
+igamma = 0.0001;          % default 0.0001
+trainCycles = 9000;       % default 400000
+eta = 0.1;                % good default 0.003
+initScaler = 1;           % default 0.01
 neurons = 3;
 layers = 15;
 h = 0.1;
 activFunc = 'relu';
 regular = 0;
-p = 1;
-s = 1;
+p = 1; % activation function parameter
+s = 1; % activation function parameter
 
 
 % Set to true if need to retrain
-first_time_launch = false;
-doPerturbation = true;
+first_time_launch = true;
+doPerturbation = false;
 
 %                                           %
 %              Training part                %
@@ -68,7 +68,7 @@ end
 %                                           %
 
 normSum = 0;
-samples = 150;
+samples = 1; % number of vector being perturbed
 offset= 4;
 label = 0;
 pert_eta = 0.01;

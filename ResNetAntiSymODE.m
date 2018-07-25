@@ -66,7 +66,7 @@ classdef ResNetAntiSymODE < handle
             for i = 2:obj.numHiddenLayers + 1
                 obj.K{i} = obj.initScaler*normrnd(0,1,[obj.hiddenLayersSize, obj.hiddenLayersSize]);
                 obj.W{i} = 0.5*(obj.K{i} - obj.K{i}' - obj.G);
-                obj.b{i} = obj.initScaler*normrnd(0,1,[obj.hiddenLayersSize,1]);
+                obj.b{i} = obj.initScaler * normrnd(0,1,[obj.hiddenLayersSize,1]);
             end
 
             obj.totalNumLayers = i;
@@ -97,8 +97,8 @@ classdef ResNetAntiSymODE < handle
 
             % Build dh/dY^(L) matrix, i.e deriv of softmax h w.r.t y^(L)
             dh = [];
-            for i =1:obj.outputLayerSize;
-                for j=1:obj.outputLayerSize;
+            for i =1:obj.outputLayerSize
+                for j=1:obj.outputLayerSize
                     if i==j
                         dh(i,j) = h_vec(i)*(1-h_vec(j));
                     else
@@ -127,7 +127,9 @@ classdef ResNetAntiSymODE < handle
             if updateWeights == true
                 % Gradient step. Update weights and biases
                 for i = 2:YN
+                    % Gradient update
                     obj.K{i} = obj.K{i} - eta * 0.5*(diag(obj.D{i})*obj.O{i} - (diag(obj.D{i})*obj.O{i})') - eta*obj.r*(obj.W{i} - obj.W{i}');
+                    
                     obj.W{i} = 0.5*(obj.K{i} - obj.K{i}' - obj.G);
                     obj.b{i} = obj.b{i} - eta* obj.h* obj.D{i} .* obj.df(obj.W{i}, obj.Y{i-1}, obj.b{i});
                 end
@@ -178,12 +180,12 @@ classdef ResNetAntiSymODE < handle
                 % Display stats
                 if mod(i, numSamples) == 0
                     progress = 100*i / cycles;
-                    classifRes=[softY',c]
+                    classifRes=[softY',c];
                     signalY = [obj.matrixY];
-                    minMaxSignalY = [min(signalY);max(signalY)]
+                    minMaxSignalY = [min(signalY);max(signalY)];
                     costAvg = costAvg / double(numSamples);
                     disp(['average cost over ', num2str(numSamples, '%0d'),' samples: ', num2str(costAvg, '%0.3f'),' progress: ', num2str(progress)]);
-                    weightNorms = obj.weightNorms()
+                    weightNorms = obj.weightNorms();
                     costAvg = 0;
                 end
             end

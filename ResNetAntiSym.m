@@ -228,10 +228,10 @@ classdef ResNetAntiSym < handle
 
                 if mod(i, numSamples) == 0
                     progress = 100*i / cycles;
-                    [softY',c]
+                    [softY',c];
                     costAvg = costAvg / double(numSamples);
                     disp(['average cost over ', num2str(numSamples, '%0d'),' samples: ', num2str(costAvg, '%0.3f'),' progress: ', num2str(progress)]);
-                    gradNorms = obj.gradientNorms()
+                    gradNorms = obj.gradientNorms();
                     costAvg = 0;
                 end
 
