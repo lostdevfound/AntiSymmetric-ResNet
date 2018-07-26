@@ -2,7 +2,7 @@ clear all;
 clc;
 close all;
 %load resources/Custom_tan_h_net_l2_h0.1_n2_p1_s1_r0_gamma1e-10.mat
-load resources/ODE_relu_net_l5_h0.1_n2_p1_s1_r0_gamma1e-07_linear_region_2d.mat
+load('ODE_tan_h_net_l15_h0.3_n3_p1_s1_r0.0001_gamma0.0001.mat')
 
 grid_res = 101;
 x_grid = linspace(-1,1,grid_res);

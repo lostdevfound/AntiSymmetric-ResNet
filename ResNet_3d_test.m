@@ -11,22 +11,22 @@ validDataSet  = dataSet(:,10001:30000);
 
 % Setup NN's params
 NN_type = 'ODE';          % ODE or Custom where Custom is a regular ResNet
-igamma = 0.0001;          % default 0.0001
-trainCycles = 600000;       % default 400000
+igamma = 0.001;          % default 0.0001
+trainCycles = 400000;       % default 400000
 eta = 0.01;                % good default 0.003
 initScaler = 0.5;           % default 0.01
 neurons = 3;
 layers = 15;
-h = 0.3;
+h = 0.1;
 activFunc = 'relu';
-regular = 0.0001;
+regular = 0.001;
 p = 1; % activation function parameter
 s = 1; % activation function parameter
 
 
 % Set to true if need to retrain
 first_time_launch = true;
-doPerturbation = false;
+doPerturbation = true;
 
 %                                           %
 %              Training part                %
@@ -68,7 +68,7 @@ end
 %                                           %
 
 normSum = 0;
-samples = 1; % number of vector being perturbed
+samples = 200; % number of vector being perturbed
 offset= 4;
 label = 0;
 pert_eta = 0.01;
@@ -94,7 +94,7 @@ for k = offset:offset + samples
 
 
     % Perturbation generation
-    perturbedVec = 0;
+    perturbedVec = testVec;
     if doPerturbation == true
         [peturbation, perturbedVec] = PA(net, testVec, labelVec, pert_eta, pertCycles);
     end

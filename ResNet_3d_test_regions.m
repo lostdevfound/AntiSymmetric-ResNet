@@ -1,8 +1,8 @@
 clear;clc;close all;
-load('resources/ODE_relu_net_l15_h0.1_n3_p1_s1_r0_gamma0.0001.mat');
-%load('resources/Custom_relu_net_l10_h0.5_n3_p1_s1_r0_gamma0.0001.mat')
+% load('resources/ODE_tan_h_net_l15_h0.3_n3_p1_s1_r0.0001_gamma0.0001.mat');
+load('resources/ODE_tan_h_net_l25_h0.3_n3_p1_s1_r0.0001_gamma0.0001.mat')
 
-a = 0; b = 0; c = 1; d = -1; resolution = 50;
+a = 0; b = 0; c = 1; d = -1; resolution = 80;
 
 [X,Y,Z,V] = slicePlane(a,b,c,d,net, resolution);
 surfPlot = surf(X,Y,Z,V,'FaceAlpha',0.3);
@@ -25,6 +25,7 @@ hold off;
 function [X,Y,Z,V] = slicePlane(a, b, c,d, net, resolution)
     normalVec = [a b c];
     grid_1D = linspace(-1,1,resolution);
+    % grid_1D = linspace(-5,5,resolution);
 
     if c~= 0
         [X Y] = meshgrid(grid_1D,grid_1D); % Generate x and y data
@@ -32,7 +33,7 @@ function [X,Y,Z,V] = slicePlane(a, b, c,d, net, resolution)
         x_plane = X(:);
         y_plane = Y(:);
         z_plane = Z(:);
-    else 
+    else
         disp('c can''t be zero.')
     end
 

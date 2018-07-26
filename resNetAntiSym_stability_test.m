@@ -9,7 +9,7 @@ clc;clear;
 
 x =  [0.1; 0.3; 0.4];
 inputNorm = norm(x)
-load('resources/ODE_relu_net_l15_h0.1_n3_p1_s1_r0_gamma0.0001.mat');
+load('resources/ODE_tan_h_net_l25_h0.3_n3_p1_s1_r0.0001_gamma0.0001.mat');
 
 disp('############## ODE stability ##############');
 Jacob2 = diag(ActivFunc.reluD(net.W{2}, x, net.b{2}, false))*net.W{2};
