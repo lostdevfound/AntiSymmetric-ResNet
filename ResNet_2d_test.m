@@ -32,7 +32,7 @@ s = 1; % activation function parameter
 
 
 % Set to true if need to retrain
-first_time_launch = true;
+first_time_launch = false;
 doPerturbation = false;
 
 %                                           %

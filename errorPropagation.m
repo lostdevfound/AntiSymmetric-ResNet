@@ -21,6 +21,8 @@ labelVec2 = validLabelSet(:,index-1);
 eta = 0.01; cycles = 10000;
 [perturbation, perturbedVec] = PA(net, testVec1, labelVec1, eta, cycles);
 
+disp({'perturbation norm:', num2str(norm(perturbedVec-testVec1,2))});
+
 classifOriginal1 = net.forwardProp(testVec1);
 correctPropagation1 = net.getArrayY();
 
@@ -30,9 +32,13 @@ correctPropagation2 = net.getArrayY();
 classifPerturbed = net.forwardProp(perturbedVec);
 fooledPropagation = net.getArrayY();
 
-results = [classifOriginal1, classifOriginal2, classifPerturbed];
+results = [ActivFunc.softmax(classifOriginal1)', ActivFunc.softmax(classifOriginal2)', ActivFunc.softmax(classifPerturbed)'];
+disp('Classification Results: Original 1 Original 2 Perturbed')
 disp(results);
 
+differenceNorms = [];
+
+% Propagation from y^2 to y^L
 for i=1:net.totalNumLayers
     correctX1(i) = correctPropagation1{i}(1);
     correctY1(i) = correctPropagation1{i}(2);
@@ -41,21 +47,34 @@ for i=1:net.totalNumLayers
     correctY2(i) = correctPropagation2{i}(2);
     correctZ2(i) = correctPropagation2{i}(3);
 
+    correctProp(:,i) = [correctX1(i); correctY1(i); correctZ1(i)];
+
     fooledX(i) = fooledPropagation{i}(1);
     fooledY(i) = fooledPropagation{i}(2);
     fooledZ(i) = fooledPropagation{i}(3);
-end
 
+    fooledProp(:,i) = [fooledX(i); fooledY(i); fooledZ(i)];
+    differenceNorms(i) = norm(fooledProp(:,i) - correctProp(:,i));
+end
+disp('difference norms')
+differenceNorms
+
+% Inputs for the NN
 X(1) = testVec1(1);
 X(2) = perturbedVec(1);
-X(3) = testVec2(1);
+% X(3) = testVec2(1);
 Y(1) = testVec1(2);
 Y(2) = perturbedVec(2);
-Y(3) = testVec2(2);
+% Y(3) = testVec2(2);
 Z(1) = testVec1(3);
 Z(2) = perturbedVec(3);
-Z(3) = testVec2(3);
+% Z(3) = testVec2(3);
 disp('index:');disp(index);
+
+% figure
+% plot(differenceNorms)
+% legend('difference norms')
+
 
 figure
 [xs,ys,zs] = sphere;
@@ -66,10 +85,11 @@ shading interp;
 hold on;
 scatter3(correctX1,correctY1,correctZ1, 'MarkerEdgeColor','k','MarkerFaceColor',[0 0 1]);
 hold on;
-scatter3(correctX2,correctY2,correctZ2,'MarkerEdgeColor','k','MarkerFaceColor',[0 1 0]);
+% scatter3(correctX2,correctY2,correctZ2,'MarkerEdgeColor','k','MarkerFaceColor',[0 1 0]);
 hold on;
 scatter3(fooledX,fooledY,fooledZ, '*');
 hold on;
 % scatter3(X,Y,Z, [100 100], [0 0 1; 1 0 0], '^');
-scatter3(X,Y,Z, [100 100 100], [0 0 1; 1 0 0; 0 0.6 0.3], '^');
+scatter3(X,Y,Z, [100 100 ], [0 0 1; 0 0.6 0.3], '^');
+% scatter3(X,Y,Z, [100 100 100], [0 0 1; 1 0 0; 0 0.6 0.3], '^');
 legend({'true region','original'})

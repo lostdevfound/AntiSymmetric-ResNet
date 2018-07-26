@@ -1,5 +1,5 @@
 function [perturbation, perturbedVec] = PA(net, inputVec, labelVec, eta, cycles)
-% PA - Perturbation Algorithm. PA perturbes an inputVec vector untill an NN can not correctly classify the inputVec
+% PA - Perturbation Algorithm. PA perturbs an inputVec vector untill an NN can not correctly classify the inputVec
 % Args:
 %      net - a neural network which has methods forwardProp() and backProp().
 %            forwardProp() must return a classification vector.

@@ -126,12 +126,24 @@ classdef ResNetAntiSymODE < handle
 
             if updateWeights == true
                 % Gradient step. Update weights and biases
+                V = 0; dRdK = 0; dRdb = 0;
                 for i = 2:YN
                     % Gradient update
-                    obj.K{i} = obj.K{i} - eta * 0.5*(diag(obj.D{i})*obj.O{i} - (diag(obj.D{i})*obj.O{i})') - eta*obj.r*(obj.W{i} - obj.W{i}');
-                    
+                    if i==2
+                        V = obj.W{3} - obj.W{2};
+                        dRdb = -2*obj.r*(obj.b{3} - obj.b{2});
+                    elseif i==YN
+                        V = obj.W{YN} - obj.W{YN-1};
+                        dRdb = -2*obj.r*(obj.b{YN} - obj.b{YN-1});
+                    else
+                        V = obj.W{i+1} - 2*obj.W{i} + obj.W{i-1};
+                        dRdb = -2*obj.r*(obj.b{i+1} -2*obj.b{i} + obj.b{i-1});
+                    end
+                    dRdK = obj.r*(-V + V');
+                    % dRdW = -2*obj.r*V;
+                    obj.K{i} = obj.K{i} - eta * 0.5*(diag(obj.D{i})*obj.O{i} - (diag(obj.D{i})*obj.O{i})') - eta*dRdK;
                     obj.W{i} = 0.5*(obj.K{i} - obj.K{i}' - obj.G);
-                    obj.b{i} = obj.b{i} - eta* obj.h* obj.D{i} .* obj.df(obj.W{i}, obj.Y{i-1}, obj.b{i});
+                    obj.b{i} = obj.b{i} - eta* obj.h* obj.D{i} .* obj.df(obj.W{i}, obj.Y{i-1}, obj.b{i}) -eta*dRdb;
                 end
             end
         end

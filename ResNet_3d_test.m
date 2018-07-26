@@ -12,14 +12,14 @@ validDataSet  = dataSet(:,10001:30000);
 % Setup NN's params
 NN_type = 'ODE';          % ODE or Custom where Custom is a regular ResNet
 igamma = 0.0001;          % default 0.0001
-trainCycles = 9000;       % default 400000
-eta = 0.1;                % good default 0.003
-initScaler = 1;           % default 0.01
+trainCycles = 600000;       % default 400000
+eta = 0.01;                % good default 0.003
+initScaler = 0.5;           % default 0.01
 neurons = 3;
 layers = 15;
-h = 0.1;
+h = 0.3;
 activFunc = 'relu';
-regular = 0;
+regular = 0.0001;
 p = 1; % activation function parameter
 s = 1; % activation function parameter
 
@@ -92,8 +92,13 @@ for k = offset:offset + samples
         onenormVecNum = onenormVecNum + 1;
     end
 
+
     % Perturbation generation
-    [peturbation, perturbedVec] = PA(net, testVec, labelVec, pert_eta, pertCycles);
+    perturbedVec = 0;
+    if doPerturbation == true
+        [peturbation, perturbedVec] = PA(net, testVec, labelVec, pert_eta, pertCycles);
+    end
+
 
     % Get classification result for pertrubed vector
     [~, predictionInd] = max(net.forwardProp(perturbedVec));
