@@ -9,7 +9,7 @@ trainImages = trainImages - trainMean;
 validatimages = validatimages - validMean;
 
 % Setup NN's params
-NN = 'ResNet';        % Train 'AntiSym' or 'ResNet'
+NN = 'AntiSym';        % Train 'AntiSym' or 'ResNet'
 trainCycles = 500000;        % default 400000
 eta = 0.001;                 % good default 0.0005 or 0.003
 neurons = 40;
@@ -18,9 +18,9 @@ initScaler = 0.01;           % default 0.01
 h = 0.1;                     % default 0.1
 igamma = 0.01;               % default 0.01
 regular = 0.001;                 % regularization
-activ = 'tan_hs';
+activ = 'tan_h';
 p = 1;
-s = 2;
+s = 1;
 
 first_time_launch = false;
 doPerturbation = true;

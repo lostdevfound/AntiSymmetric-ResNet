@@ -1,6 +1,6 @@
 clear all
 
-load('/home/user1/Documents/ML/matlab/AntiSymResNet/resources/AntiSym_tan_hs_net_l10_h0.1_n40_p1_s2_r0.001_stable.mat')
+load('/home/user1/Documents/ML/matlab/AntiSymResNet/resources/AntiSym_tan_h_net_l10_h0.1_n40_p1_s1_r0.001.mat')
 
 % Super-resolution factor:
 % the new grid will have resolution 1/super_res_factor (old grid has step 1)
@@ -48,7 +48,7 @@ depth = size_new_W(3);
 %%%
 
 h = net.h / super_res_factor;
-interp_net = ResNetAntiSym(depth, 784, net.outputLayerSize, net.hiddenLayersSize, net.igamma, h, net.initScaler, false, net.activFunc,1, 1, net.r);
+interp_net = ResNetAntiSym(depth, 784, net.outputLayerSize, net.hiddenLayersSize, net.igamma, h, net.initScaler, false, net.activFunc,net.p, net.s, net.r);
 interp_net.hIO = net.h;
 L_new = interp_net.totalNumLayers;
 

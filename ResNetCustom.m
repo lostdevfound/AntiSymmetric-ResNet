@@ -28,6 +28,8 @@ classdef ResNetCustom < handle
         f;      % Activation function handle
         df;     % Derivative of an activation function
         ddf;
+        p;      % Activation function extra param
+        s;      % Activation function extra param
         r;      % Regularization parameter
         C;      % Concavity matrix
     end
@@ -36,6 +38,7 @@ classdef ResNetCustom < handle
         function obj = ResNetCustom(i_numHiddenLayers, i_inputLayerSize, i_outputLayerSize, i_hiddenLayersSize, h, initScaler, i_testMode, activFunc, p, s, r)
             % Build class of activation functions
             % Params: activFunc can be 'relu', 'sigmoid' or 'powerlog', param 'p' is a power for powerlog func
+            obj.s = s; obj.p = p;
             obj.activFunc = activFunc;
             ActivClass = ActivFunc(activFunc, i_testMode, p, s);
             obj.f = @ActivClass.activf;
