@@ -5,9 +5,9 @@ classdef ResNetCustom < handle
     properties
         name;   % some str value
         tm;     % testmode, this param is used for testing gradients of the NN
+        activFunc;
         h;
         hIO;    % h value for W_2 and W_YN, this var is needed for NN that was interpolated
-        igamma;
         initScaler;
         numHiddenLayers;
         inputLayerSize;
@@ -36,6 +36,7 @@ classdef ResNetCustom < handle
         function obj = ResNetCustom(i_numHiddenLayers, i_inputLayerSize, i_outputLayerSize, i_hiddenLayersSize, h, initScaler, i_testMode, activFunc, p, s, r)
             % Build class of activation functions
             % Params: activFunc can be 'relu', 'sigmoid' or 'powerlog', param 'p' is a power for powerlog func
+            obj.activFunc = activFunc;
             ActivClass = ActivFunc(activFunc, i_testMode, p, s);
             obj.f = @ActivClass.activf;
             obj.df = @ActivClass.activfD;
@@ -87,11 +88,9 @@ classdef ResNetCustom < handle
             end
 
             % Build W^(L)
-            WN = obj.initScaler*normrnd(0,1,[obj.outputLayerSize, obj.hiddenLayersSize]);
-            bN = obj.initScaler*normrnd(0,1,[obj.outputLayerSize, 1]);
-            obj.W{i + 1} = WN;
-            obj.b{i + 1} = bN;
-            obj.M{i + 1} = ones(size(WN));
+            obj.W{i + 1} = obj.initScaler*normrnd(0,1,[obj.outputLayerSize, obj.hiddenLayersSize]);
+            obj.b{i + 1} = obj.initScaler*normrnd(0,1,[obj.outputLayerSize, 1]);
+            obj.M{i + 1} = ones(size(obj.W{i + 1}));
             [~, obj.totalNumLayers] = size(obj.W);
         end
 
@@ -294,6 +293,14 @@ classdef ResNetCustom < handle
                 m(:,i) = obj.Y{i};
             end
         end
+
+
+        function arrayY = getArrayY(obj)
+            for i=1:obj.totalNumLayers
+                arrayY{i} = obj.Y{i};
+            end
+        end
+
 
     end
 end

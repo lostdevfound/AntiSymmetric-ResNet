@@ -11,8 +11,14 @@ function [perturbation, perturbedVec] = PA(net, inputVec, labelVec, eta, cycles)
 %      cycles - number of tries of perturbations
 %
     perturbedVec = inputVec;
+
+    if min(size(inputVec))~= 1
+        error('Input is not a vector');
+    end
+
     perturbation = 0;
     count = 0;
+
     [~,labelIndex] = max(labelVec);
 
     while count < cycles
@@ -22,7 +28,7 @@ function [perturbation, perturbedVec] = PA(net, inputVec, labelVec, eta, cycles)
         perturbation = perturbation + eta * dCdX;           % compute perturbation vector
         perturbedVec = perturbedVec + perturbation;         % perturb the inputVec
 
-        classifRes = ActivFunc.softmax(net.forwardProp(perturbedVec));
+        classifRes = ActivFunc.softmax(net.forwardProp(perturbedVec))';
 
         [prediction, predictionInd] = max(classifRes);
 

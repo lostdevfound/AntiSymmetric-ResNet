@@ -12,14 +12,14 @@ validDataSet  = dataSet(:,10001:30000);
 % Setup NN's params
 NN_type = 'ODE';          % ODE or Custom where Custom is a regular ResNet
 igamma = 0.001;          % default 0.0001
-trainCycles = 400000;       % default 400000
-eta = 0.01;                % good default 0.003
-initScaler = 0.5;           % default 0.01
+trainCycles = 300000;       % default 400000
+eta = 0.05;                % good default 0.003
+initScaler = 0.01;           % default 0.01
 neurons = 3;
 layers = 15;
-h = 0.1;
+h = 0.5;
 activFunc = 'relu';
-regular = 0.001;
+regular = 0.002;
 p = 1; % activation function parameter
 s = 1; % activation function parameter
 

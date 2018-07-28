@@ -9,9 +9,10 @@ trainMean = mean(trainImages(:,1:end),2);
 validMean = mean(validatimages(:,1:end),2);
 trainImages = trainImages - trainMean;
 validatimages = validatimages - validMean;
-
-load('resources/antisym_net_l5_h0.4_ig0.1_n70_r0.2.mat')   % Load pretrained AntiSymResNet
-
+% load('/home/user1/Documents/ML/matlab/AntiSymResNet/resources/AntiSymResNetrelu_net_l5_h0.4_n70_p1_s1_r0.mat')
+% load('/home/user1/Documents/ML/matlab/AntiSymResNet/resources/ResNet_relu_net_l5_h0.4_n70_p1_s1_r0.mat')
+% load('/home/user1/Documents/ML/matlab/AntiSymResNet/resources/AntiSym_relu_net_l5_h0.4_n70_p1_s1_r0.001.mat')
+load('/home/user1/Documents/ML/matlab/AntiSymResNet/resources/interpolated.mat')
 
 % Training and Validation costs and errors
 trainingCost = 0;
@@ -29,7 +30,7 @@ validCycles = 10000;
 % Training benchmarking
 for i=1:trainCycles
     %  Compute training cost using 2-norm
-    Y = softmax(net.forwardProp(trainImages(:,i)))';
+    Y = ActivFunc.softmax(net.forwardProp(trainImages(:,i)))';
     L = trainLabels(:,i);
     trainingCost = trainingCost + norm(Y-L)^2;
     % Compute training error
@@ -39,7 +40,7 @@ end
 % Validation benchmarking
 for i=1:validCycles
     % Compute validation error
-    Y = softmax(net.forwardProp(validatimages(:,i)))';
+    Y = ActivFunc.softmax(net.forwardProp(validatimages(:,i)))';
     L = validatLabels(:,i);
     generalizationCost = generalizationCost + norm(Y-L)^2;
 
@@ -69,24 +70,5 @@ function error = computeError(predictionVec, labelVec, upperBound, lowerBound)
 %          error = 1.0;
     else
         error = 0.0;
-    end
-end
-
-function y = sigm(z)
-    % sigmoid activation function.
-    y = 1./(1+exp(-z));
-end
-
-function resSoft = softmax(y_args)
-    % This function computes softmax
-    y_argsSum = 0;
-    inputSize = max(size(y_args));
-
-    for i = 1:inputSize
-        y_argsSum = y_argsSum + exp(y_args(i));
-    end
-
-    for i = 1:inputSize
-        resSoft(i) = exp(y_args(i)) / y_argsSum;
     end
 end

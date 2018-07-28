@@ -1,114 +1,25 @@
-% ResNetSoftMax class implements a Residual Neural Network
-
-classdef ResNetAntiSym < handle
-% ResNet class with cross entropy objective function
+classdef ResNetAntiSym < ResNetCustom
     properties
-        name;   % some str value
-        tm;     % testmode, this param is used for testing gradients of the NN
-        h;
-        hIO;    % h value for W_2 and W_YN, this var is needed for NN that was interpolated
+        K;
+        G;
         igamma;
-        initScaler;
-        numHiddenLayers;    % hiddenLayers are layers 3, 4,...,L-1
-        inputLayerSize;
-        outputLayerSize;
-        hiddenLayersSize;
-        W2_lin;
-        b2_lin;
-        WYN_lin;
-        bYN_lin;
-        f;      % Activation function handle
-        df;     % Derivative of an activation function
-        ddf;    % Second Derivative of an activation function
-        W;
-        b;
-        totalNumLayers;
-        O;      % An array of omegas
-        DY;     % An array of derivatives dY^(l)/dY^(l-1)
-        Y;      % An array Y stores  layer vectors
-        D;      % An arrat that stores Delta vectors. Delta represent the derivative of of the CostFunction w.r.t. y^(l)
-        r;      % Regularization parameter
     end
 
     methods
-        function obj = ResNetAntiSym(i_numHiddenLayers, i_inputLayerSize, i_outputLayerSize, i_hiddenLayersSize, i_gamma, h, initScaler, i_testMode, activFunc, regular, p, s)
-            % ResNet constructor
+        function obj = ResNetAntiSym(i_numHiddenLayers, i_inputLayerSize, i_outputLayerSize, i_hiddenLayersSize, i_gamma, h, initScaler, i_testMode, activFunc, p, s, r)
 
-            % Params: activFunc can be 'obj.f', 'sigmoid' or 'powerlog', param 'p' is a power for powerlog func
-            ActivClass = ActivFunc(activFunc, i_testMode, p, s);
-            obj.f = @ActivClass.activf;
-            obj.df = @ActivClass.activfD;
-            obj.ddf = @ActivClass.activfDD;
+            obj@ResNetCustom(i_numHiddenLayers, i_inputLayerSize, i_outputLayerSize, i_hiddenLayersSize, h, initScaler, i_testMode, activFunc, p, s, r);
 
-            obj.tm = i_testMode;
-            obj.numHiddenLayers = i_numHiddenLayers;
-            obj.inputLayerSize = i_inputLayerSize;
-            obj.outputLayerSize = i_outputLayerSize;
-            obj.hiddenLayersSize = i_hiddenLayersSize;
-            obj.totalNumLayers = 0;
-            obj.initScaler = initScaler;
             obj.igamma = i_gamma;
-            obj.h = h;
-            obj.hIO = h;
-            obj.r = regular;
-            % Init arrays
-            obj.D{1} = 0;   % Array of gradients dC/dY
-            obj.O{1} = 0;   % Array of Omega gradients dY_i^(l)/dW_ij^(l)
-            obj.Y{1} = 0;   % Array of forward pass layers Y
-            obj.DY{1} = 0;  % Array of dY^(l)/dY^(l-1)
-            obj.Y{2} = zeros(obj.hiddenLayersSize, 1);    % init array Y as matrix with all enries 0
-            obj.D{2} = zeros(obj.hiddenLayersSize, 1);    % init array D as matrix with all enries 0
-
-            % Build W2, b2 for connections from input layer to first hidden
-            W2 = obj.initScaler*normrnd(0,1,[obj.hiddenLayersSize, obj.inputLayerSize]);
-            b2 = obj.initScaler*normrnd(0,1,[obj.hiddenLayersSize,1]);
-
-            obj.W2_lin = obj.initScaler*normrnd(0,1,[obj.hiddenLayersSize, obj.inputLayerSize]);
-            obj.b2_lin = obj.initScaler*normrnd(0,1,[obj.hiddenLayersSize,1]);
-
-            obj.WYN_lin = obj.initScaler*normrnd(0,1,[obj.outputLayerSize, obj.hiddenLayersSize]);
-            obj.bYN_lin = obj.initScaler*normrnd(0,1,[obj.outputLayerSize,1]);
-
-            obj.W{2} = W2;
-            obj.b{2} = b2;
-
-            gammaMatrix = obj.igamma * eye(obj.hiddenLayersSize);
+            obj.G = obj.igamma * eye(obj.hiddenLayersSize);
+            obj.K{1} = 0;
 
             % Build intermediate W and b
             for i = 3:obj.numHiddenLayers + 2   % do not build W and b from last hidden layer to output layer
-                K = obj.initScaler*normrnd(0,1,[obj.hiddenLayersSize, obj.hiddenLayersSize]);
-                W = 0.5*(K - K' - gammaMatrix);
-                b = obj.initScaler*normrnd(0,1,[obj.hiddenLayersSize,1]);
-                obj.W{i} = W;
-                obj.b{i} = b;
+                obj.K{i} = obj.initScaler*normrnd(0,1,[obj.hiddenLayersSize, obj.hiddenLayersSize]);
+                obj.W{i} = 0.5*(obj.K{i} - obj.K{i}' - obj.G);
+                obj.b{i} = obj.initScaler*normrnd(0,1,[obj.hiddenLayersSize,1]);
             end
-
-            % Build W and b from last hidden layer to output layer
-            WN = obj.initScaler*normrnd(0,1,[obj.outputLayerSize, obj.hiddenLayersSize]);
-            bN = obj.initScaler*normrnd(0,1,[obj.outputLayerSize, 1]);
-            obj.W{i+1} = WN;
-            obj.b{i+1} = bN;
-            [~, obj.totalNumLayers] = size(obj.W);
-
-        end
-
-
-        function result = forwardProp(obj, i_vector)
-            % Forward propagation
-            YN = obj.totalNumLayers;
-            % obj.f first hidden layer
-            obj.Y{2} = obj.W2_lin*i_vector + obj.b2_lin + obj.hIO*obj.f(obj.W{2},i_vector,obj.b{2});
-
-            % obj.f hidden layers
-            for i = 3:YN - 1
-                obj.Y{i} = obj.Y{i-1} + obj.h*obj.f(obj.W{i},obj.Y{i-1},obj.b{i});
-            end
-
-            % obj.f last layer
-            obj.Y{YN} = obj.WYN_lin*obj.Y{YN-1} + obj.bYN_lin + obj.hIO*obj.f(obj.W{YN},obj.Y{YN-1},obj.b{YN});
-
-            result = obj.Y{end};
-
         end
 
 
@@ -171,97 +82,29 @@ classdef ResNetAntiSym < handle
 
                 % Update intermediate layers
                 for i = 3:YN-1
-                    obj.W{i} = obj.W{i} - eta * 0.5*(diag(obj.D{i})*obj.O{i} - (diag(obj.D{i})*obj.O{i})') - eta*obj.r*(obj.W{i} - obj.W{i}');
-                    obj.b{i} = obj.b{i} - eta* obj.h* obj.D{i} .* obj.df(obj.W{i}, obj.Y{i-1}, obj.b{i});
+
+                    % Regularization
+                    if i==3
+                        V = obj.W{i+1} - obj.W{i};
+                        dRdb = -2*obj.r*(obj.b{i+1} - obj.b{i});
+                    elseif i==YN-1
+                        V = obj.W{i} - obj.W{i-1};
+                        dRdb = -2*obj.r*(obj.b{i} - obj.b{i-1});
+                    else
+                        V = obj.W{i+1} - 2*obj.W{i} + obj.W{i-1};
+                        dRdb = -2*obj.r*(obj.b{i+1} -2*obj.b{i} + obj.b{i-1});
+                    end
+                    dRdK = obj.r*(-V + V');
+                    dRdW = -2*obj.r*V;
+
+                    obj.K{i} = obj.K{i} - eta * 0.5*(diag(obj.D{i})*obj.O{i} - (diag(obj.D{i})*obj.O{i})') - eta*dRdK;
+                    % obj.K{i} = obj.K{i} - eta * 0.5*(diag(obj.D{i})*obj.O{i} - (diag(obj.D{i})*obj.O{i})') - eta*obj.r*(obj.W{i} - obj.W{i}');
+                    obj.W{i} = 0.5*(obj.K{i} - obj.K{i}' - obj.G);
+                    obj.b{i} = obj.b{i} - eta* obj.h* obj.D{i} .* obj.df(obj.W{i}, obj.Y{i-1}, obj.b{i}) - eta*dRdb;
                 end
             end
         end
 
 
-        %  Compute derivate dY^(L)/dX
-        function dYdX = computedYdX(obj, i_vector)
-            % TODO need to change this cause y^(L) and y^(l2) are changed
-            disp('this method needs to be changed cause y^(2) and y^(L) were modified');
-            YN = obj.totalNumLayers;
-
-            % Calculate the last layer gradient dY_i^(l)/dY_j^(l-1)
-            obj.DY{YN-1} = obj.W{YN} .* (ones(obj.outputLayerSize,1) + obj.h*obj.df(obj.W{YN}, obj.Y{YN-1}, obj.b{YN}, obj.tm));
-
-            % Calculate the L-1, L-2, ... , 2 layer gradients
-            for i = YN-2:-1:2
-                obj.DY{i} = obj.DY{i+1} + obj.DY{i+1} * (obj.W{i+1}.*obj.h*obj.df(obj.W{i+1}, obj.Y{i}, obj.b{i+1}, obj.tm));
-            end
-
-            obj.DY{1} = obj.DY{2} * obj.W{2} + obj.DY{2} * (obj.W{2} .* ( obj.h*obj.df(obj.W{2}, i_vector, obj.b{2}, obj.tm)) );
-            dYdX = obj.DY{1};
-        end
-
-        % Adversarial back prop
-        function perturbedVector = adversBackProp(obj, i_vector,label_vector,eta)
-            % Gradient w.r.t the i_vector
-            backProp(obj, i_vector, label_vector, eta, false);
-            perturbator = eta*obj.D{1};
-            perturbedVector = i_vector + perturbator;
-        end
-
-
-        % Training
-        function trainingRes = train(obj, trainData, trainLabel, cycles, eta)
-            [vecSize, numVecs] = size(trainData);
-            costAvg = 0;
-            numSamples = 3000;
-
-            for i = 1:cycles
-
-
-                randInd = randi(numVecs);
-                x = trainData(:, randInd);
-                c = trainLabel(:, randInd);
-
-                y = forwardProp(obj, x);
-
-                softY = ActivFunc.softmax(y);
-
-                backProp(obj, x, c, eta, true);
-
-                costAvg = costAvg + norm(c - softY')^2;
-
-                if mod(i, numSamples) == 0
-                    progress = 100*i / cycles;
-                    [softY',c];
-                    costAvg = costAvg / double(numSamples);
-                    disp(['average cost over ', num2str(numSamples, '%0d'),' samples: ', num2str(costAvg, '%0.3f'),' progress: ', num2str(progress)]);
-                    gradNorms = obj.gradientNorms();
-                    costAvg = 0;
-                end
-
-            end
-
-        end
-
-
-        function delta = getDelta(obj, id)
-            delta = obj.D{id};
-        end
-
-
-        function weights = getWeights(obj, id)
-            weights = obj.W(id);
-            weights = weights{1};
-        end
-
-
-        function bias = getBias(obj, id)
-            bias = obj.b(id);
-            bias = bias{1};
-        end
-
-
-        function normsVec = gradientNorms(obj)
-
-            for i = obj.totalNumLayers:-1:1
-                normsVec(i) = norm(obj.D{i});
-            end
-        end
     end
 end

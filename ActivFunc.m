@@ -17,6 +17,7 @@ classdef ActivFunc < handle
 
         function y = activf(obj, W, x, b)
             % This function picks desired activation function based on th class property "activ"
+            y=0;
             if strcmp(obj.activ, 'relu')
                 y = ActivFunc.relu(W, x, b, obj.testmode);
 
@@ -25,18 +26,22 @@ classdef ActivFunc < handle
 
             elseif strcmp(obj.activ, 'powerlog')
                 y = ActivFunc.powerlog(W, x, b, obj.p, obj.s);
-                
+
             elseif strcmp(obj.activ, 'sqrf')
                 y = ActivFunc.sqrf(W, x, b);
-                
+
             elseif strcmp(obj.activ, 'tan_h')
                 y = ActivFunc.tan_h(W, x, b);
+
+            elseif strcmp(obj.activ, 'tan_hs')
+                y = ActivFunc.tan_hs(W, x, b, obj.s);
             end
         end
 
 
         function d = activfD(obj, W, x, b)
             % This function picks desired activation function based on the string parameter "activ"
+            d = 0;
             if strcmp(obj.activ, 'relu')
                 d = ActivFunc.reluD(W, x, b, obj.testmode);
 
@@ -45,12 +50,15 @@ classdef ActivFunc < handle
 
             elseif strcmp(obj.activ, 'powerlog')
                 d = ActivFunc.powerlogD(W, x, b, obj.p, obj.s);
-                
+
             elseif strcmp(obj.activ, 'sqrf')
                 d = ActivFunc.sqrfD(W, x, b);
-                
+
             elseif strcmp(obj.activ, 'tan_h')
                 d = ActivFunc.tan_hD(W, x, b);
+
+            elseif strcmp(obj.activ, 'tan_hs')
+                d = ActivFunc.tan_hsD(W, x, b, obj.s);
             end
         end
 
@@ -97,7 +105,6 @@ classdef ActivFunc < handle
             if testmode == true
                 d = 1;    % this is for testing without max() operator
             else
-                %d = 0.5*(sign(W*x+b)+1)+leak*(W*x+b<0);
                 d = W*x + b >= 0;
                 d(d==0) = leak;
             end
@@ -144,39 +151,38 @@ classdef ActivFunc < handle
             z = W*x + b;
             d = -1/4.0*(z > 0).*z.^(-3/2.0);
         end
-        
+
         function y = tan_h(W, x, b)
             % vector hyperbolic tangent activation function.
             y = tanh(W*x+b);
         end
-        
+
         function y = tan_hD(W, x, b)
             % derivative of vector hyperbolic tangent activation function.
             y = sech(W*x+b).^2;
         end
 
 
+        function y = tan_hs(W, x, b, s)
+            % vector hyperbolic tangent activation function.
+            y = tanh(s*(W*x+b));
+        end
+
+
+        function y = tan_hsD(W, x, b, s)
+            % derivative of vector hyperbolic tangent activation function.
+            y = s*sech(s*(W*x+b)).^2;
+        end
+
         function resSoft = softmax(y_args)
             % This function computes softmax
-
             if min(size(y_args)) ~= 1
                 error('input is not a vector in softmax')
             end
-
-            % Vectorized version
             C = max(y_args);
             resSoft = exp(y_args - C) / (sum(exp(y_args -C)));
             resSoft = resSoft';
 
-            % inputSize = length(y_args);
-            % C = max(y_args);
-            % y_argsSum = 0;
-            % for i = 1:inputSize
-            %     y_argsSum = y_argsSum + exp(y_args(i) - C);
-            % end
-            % for i = 1:inputSize
-            %     resSoft(i) = exp(y_args(i) - C) / y_argsSum;
-            % end
         end
     end
 end
