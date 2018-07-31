@@ -9,10 +9,8 @@ trainMean = mean(trainImages(:,1:end),2);
 validMean = mean(validatimages(:,1:end),2);
 trainImages = trainImages - trainMean;
 validatimages = validatimages - validMean;
-% load('/home/user1/Documents/ML/matlab/AntiSymResNet/resources/AntiSymResNetrelu_net_l5_h0.4_n70_p1_s1_r0.mat')
-% load('/home/user1/Documents/ML/matlab/AntiSymResNet/resources/ResNet_relu_net_l5_h0.4_n70_p1_s1_r0.mat')
-% load('/home/user1/Documents/ML/matlab/AntiSymResNet/resources/AntiSym_relu_net_l5_h0.4_n70_p1_s1_r0.001.mat')
-load('/home/user1/Documents/ML/matlab/AntiSymResNet/resources/interpolated.mat')
+
+load('/home/user1/Documents/ML/matlab/AntiSymResNet/resources/ODE-END_tan_h_net_l10_h0.1_n30_p1_s1_r0.001_r1_0.002_newreg.mat')
 
 % Training and Validation costs and errors
 trainingCost = 0;
@@ -32,6 +30,11 @@ for i=1:trainCycles
     %  Compute training cost using 2-norm
     Y = ActivFunc.softmax(net.forwardProp(trainImages(:,i)))';
     L = trainLabels(:,i);
+
+    % Padding for ODE end NN
+    paddingSize = net.hiddenLayersSize - max(size(L));
+    L= [L; zeros(paddingSize, 1)];
+
     trainingCost = trainingCost + norm(Y-L)^2;
     % Compute training error
     trainingError = trainingError + computeError(Y, L, upperBound, lowerBound);
@@ -42,6 +45,11 @@ for i=1:validCycles
     % Compute validation error
     Y = ActivFunc.softmax(net.forwardProp(validatimages(:,i)))';
     L = validatLabels(:,i);
+
+    % Padding for ODE end NN
+    paddingSize = net.hiddenLayersSize - max(size(L));
+    L= [L; zeros(paddingSize, 1)];
+    
     generalizationCost = generalizationCost + norm(Y-L)^2;
 
     validationError = validationError + computeError(Y, L, upperBound, lowerBound);

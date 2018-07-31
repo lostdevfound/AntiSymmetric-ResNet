@@ -24,17 +24,11 @@ classdef ActivFunc < handle
             elseif strcmp(obj.activ,'sigmoid')
                 y = ActivFunc.v_sigm(W, x, b);
 
-            elseif strcmp(obj.activ, 'powerlog')
-                y = ActivFunc.powerlog(W, x, b, obj.p, obj.s);
-
-            elseif strcmp(obj.activ, 'sqrf')
-                y = ActivFunc.sqrf(W, x, b);
-
             elseif strcmp(obj.activ, 'tan_h')
                 y = ActivFunc.tan_h(W, x, b);
 
-            elseif strcmp(obj.activ, 'tan_hs')
-                y = ActivFunc.tan_hs(W, x, b, obj.s);
+            elseif strcmp(obj.activ, 'segSig')
+                y = ActivFunc.segSig(W, x, b);
             end
         end
 
@@ -48,42 +42,18 @@ classdef ActivFunc < handle
             elseif strcmp(obj.activ,'sigmoid')
                 d = ActivFunc.v_sigmD(W, x, b);
 
-            elseif strcmp(obj.activ, 'powerlog')
-                d = ActivFunc.powerlogD(W, x, b, obj.p, obj.s);
-
-            elseif strcmp(obj.activ, 'sqrf')
-                d = ActivFunc.sqrfD(W, x, b);
-
             elseif strcmp(obj.activ, 'tan_h')
                 d = ActivFunc.tan_hD(W, x, b);
 
-            elseif strcmp(obj.activ, 'tan_hs')
-                d = ActivFunc.tan_hsD(W, x, b, obj.s);
+            elseif strcmp(obj.activ, 'segSig')
+                d = ActivFunc.segSigD(W, x, b);
             end
         end
 
-
-        function dd = activfDD(obj, W, x, b)
-            if strcmp(obj.activ, 'sqrf')
-                dd = ActivFunc.sqrfDD(W,x,b);
-            end
-        end
     end
 
 
     methods (Static)
-
-        function y = powerlog(W, x, b, p, s)
-            % vector log(z)^p activation function
-            z = W*x+b;
-            y = (z >= 0).*log(z/s + 1).^p;
-        end
-
-        function d = powerlogD(W, x, b, p, s)
-            % vector derivative of powerlogD
-            z = W*x+b;
-            d = p*(z >= 0) .* log(z/s +1).^(p-1) ./ ((z/s +1)*s);
-        end
 
         function y = relu(W, x, b, testmode)
         % vector ReLu activation fucntion
@@ -136,22 +106,6 @@ classdef ActivFunc < handle
         end
 
 
-        function y = sqrf(W, x, b)
-            z = W*x + b;
-            y = (z > 0).*z.^(1/2.0);
-        end
-
-
-        function d = sqrfD(W, x, b)
-            z = W*x + b;
-            d = 1/2.0*(z > 0).*z.^(-1/2.0);
-        end
-
-        function d = sqrfDD(W, x, b)
-            z = W*x + b;
-            d = -1/4.0*(z > 0).*z.^(-3/2.0);
-        end
-
         function y = tan_h(W, x, b)
             % vector hyperbolic tangent activation function.
             y = tanh(W*x+b);
@@ -163,15 +117,15 @@ classdef ActivFunc < handle
         end
 
 
-        function y = tan_hs(W, x, b, s)
-            % vector hyperbolic tangent activation function.
-            y = tanh(s*(W*x+b));
+        function y = segSig(W, x, b)
+            z = W*x + b;
+            y = min(1, max(-1,z));
         end
 
 
-        function y = tan_hsD(W, x, b, s)
-            % derivative of vector hyperbolic tangent activation function.
-            y = s*sech(s*(W*x+b)).^2;
+        function d = segSigD(W, x, b)
+            z = W*x + b;
+            d = z > -1 & z < 1;
         end
 
         function resSoft = softmax(y_args)

@@ -1,10 +1,10 @@
 clear all
 
-load('/home/user1/Documents/ML/matlab/AntiSymResNet/resources/AntiSym_tan_h_net_l10_h0.1_n40_p1_s1_r0.001.mat')
+load('/home/user1/Documents/ML/matlab/AntiSymResNet/resources/ODE-END_segSig_net_l9_h0.2_n35_p1_s1_r0.008_r1_0.002_newreg.mat')
 
 % Super-resolution factor:
 % the new grid will have resolution 1/super_res_factor (old grid has step 1)
-super_res_factor = 4;
+super_res_factor = 5;
 
 % Extract Anti-Symmetric ResNet Weights Matrices from the network
 L_old = net.totalNumLayers;
@@ -48,7 +48,7 @@ depth = size_new_W(3);
 %%%
 
 h = net.h / super_res_factor;
-interp_net = ResNetAntiSym(depth, 784, net.outputLayerSize, net.hiddenLayersSize, net.igamma, h, net.initScaler, false, net.activFunc,net.p, net.s, net.r);
+interp_net = ResNetAntiSym_ODE_END(depth, 784, net.outputLayerSize, net.hiddenLayersSize, 0.01, h, net.initScaler, false, net.activFunc,net.p, net.s, net.r, net.r1, net.r2);
 interp_net.hIO = net.h;
 L_new = interp_net.totalNumLayers;
 
@@ -69,8 +69,8 @@ net = interp_net;
 save('resources/interpolated', 'net')
 
 
-valuesNew(:) = W_new(1,5,:);
-valuesOld(:) = W_old(1,5,3:L_old-1);
+valuesNew(:) = W_new(2,5,:);
+valuesOld(:) = W_old(2,5,3:L_old-1);
 length(grid_old)
 length(valuesOld)
 

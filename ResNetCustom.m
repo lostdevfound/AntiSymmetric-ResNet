@@ -18,7 +18,6 @@ classdef ResNetCustom < handle
         b2_lin;
         WYN_lin;
         bYN_lin;
-        M;      % Mask for W
         W;      % Weights
         b;      % Biases
         O;      % An array of omegas
@@ -31,14 +30,16 @@ classdef ResNetCustom < handle
         p;      % Activation function extra param
         s;      % Activation function extra param
         r;      % Regularization parameter
-        C;      % Concavity matrix
+        r1;
+        r2;
     end
 
     methods
-        function obj = ResNetCustom(i_numHiddenLayers, i_inputLayerSize, i_outputLayerSize, i_hiddenLayersSize, h, initScaler, i_testMode, activFunc, p, s, r)
+        function obj = ResNetCustom(i_numHiddenLayers, i_inputLayerSize, i_outputLayerSize, i_hiddenLayersSize, h, initScaler, i_testMode, activFunc, p, s, r, r1, r2)
             % Build class of activation functions
             % Params: activFunc can be 'relu', 'sigmoid' or 'powerlog', param 'p' is a power for powerlog func
-            obj.s = s; obj.p = p;
+            obj.s = s; obj.p = p; obj.r1 = r1; obj.r2 = r2; obj.r = r;
+
             obj.activFunc = activFunc;
             ActivClass = ActivFunc(activFunc, i_testMode, p, s);
             obj.f = @ActivClass.activf;
@@ -53,10 +54,7 @@ classdef ResNetCustom < handle
             obj.initScaler = initScaler;
             obj.h = h;
             obj.hIO = h;
-            obj.r = r;
             % Init arrays
-            obj.C{1} = 0;
-            obj.M{1} = 1;
             obj.W{1} = 0;
             obj.D{1} = 0;   % Array of gradients dC/dY
             obj.O{1} = 0;   % Array of Omega gradients dY_i^(l)/dW_ij^(l)
@@ -70,11 +68,14 @@ classdef ResNetCustom < handle
             b2 = obj.initScaler*normrnd(0,1,[obj.hiddenLayersSize,1]);
             obj.W{2} = W2;
             obj.b{2} = b2;
-            obj.M{2} = ones(size(W2));
 
-            obj.W2_lin = obj.initScaler*normrnd(0,1,[obj.hiddenLayersSize, obj.inputLayerSize]);
-            obj.b2_lin = obj.initScaler*normrnd(0,1,[obj.hiddenLayersSize,1]);
+            obj.W2_lin = zeros(obj.hiddenLayersSize, obj.inputLayerSize);
+            obj.b2_lin = zeros(obj.hiddenLayersSize,1);
+            % obj.W2_lin = obj.initScaler*normrnd(0,1,[obj.hiddenLayersSize, obj.inputLayerSize]);
+            % obj.b2_lin = obj.initScaler*normrnd(0,1,[obj.hiddenLayersSize,1]);
 
+            % obj.WYN_lin = zeros(obj.outputLayerSize, obj.hiddenLayersSize);
+            % obj.bYN_lin = zeros(obj.outputLayerSize, 1);
             obj.WYN_lin = obj.initScaler*normrnd(0,1,[obj.outputLayerSize, obj.hiddenLayersSize]);
             obj.bYN_lin = obj.initScaler*normrnd(0,1,[obj.outputLayerSize,1]);
 
@@ -87,13 +88,11 @@ classdef ResNetCustom < handle
                 b = obj.initScaler*normrnd(0,1,[obj.hiddenLayersSize,1]);
                 obj.W{i} = W;
                 obj.b{i} = b;
-                obj.M{i} = ones(size(W));
             end
 
             % Build W^(L)
             obj.W{i + 1} = obj.initScaler*normrnd(0,1,[obj.outputLayerSize, obj.hiddenLayersSize]);
             obj.b{i + 1} = obj.initScaler*normrnd(0,1,[obj.outputLayerSize, 1]);
-            obj.M{i + 1} = ones(size(obj.W{i + 1}));
             [~, obj.totalNumLayers] = size(obj.W);
         end
 
@@ -173,23 +172,23 @@ classdef ResNetCustom < handle
                 % Gradient step. Update weights and biases
 
                 % First update dim reduction weights and biases
-                obj.W2_lin = obj.W2_lin - eta*(obj.D{2} *i_vector' + obj.r*obj.W2_lin);
-                obj.b2_lin = obj.b2_lin - eta*obj.D{2};
+                % obj.W2_lin = obj.W2_lin - eta*(obj.D{2} *i_vector' + obj.r*obj.W2_lin) - eta*obj.r*2*obj.W2_lin;
+                % obj.b2_lin = obj.b2_lin - eta*obj.D{2};
 
                 obj.WYN_lin = obj.WYN_lin - eta*(obj.D{YN} * obj.Y{YN-1}' + obj.r*obj.WYN_lin);
                 obj.bYN_lin = obj.bYN_lin - eta*obj.D{YN};
 
                 % Update ReLu weights and biases for layer 2 and YN
-                obj.W{2} = obj.W{2} - eta *obj.M{2}.*(obj.h*obj.D{2}.* obj.df(obj.W{2}, i_vector, obj.b{2})* i_vector' + obj.r*obj.W{2});
+                obj.W{2} = obj.W{2} - eta*(obj.h*obj.D{2}.* obj.df(obj.W{2}, i_vector, obj.b{2})* i_vector') - eta*obj.r*2*obj.W{2};
                 obj.b{2} = obj.b{2} - eta* obj.h* obj.D{2} .* obj.df(obj.W{2}, i_vector,obj.b{2});
 
-                obj.W{YN} = obj.W{YN} - eta * obj.M{YN}.*(obj.O{YN} + obj.r*obj.W{YN});
-                obj.b{YN} = obj.b{YN} - eta* obj.h* obj.D{YN} .* obj.df(obj.W{YN}, obj.Y{YN-1}, obj.b{YN});
+                obj.W{YN} = obj.W{YN} - eta*(obj.O{YN} + obj.r*obj.W{YN}) - eta*obj.r*2*obj.W{YN};
+                obj.b{YN} = obj.b{YN} - eta*obj.h* obj.D{YN} .* obj.df(obj.W{YN}, obj.Y{YN-1}, obj.b{YN});
 
                 % Update intermediate layers
                 for i = 3:YN-1
-                    obj.W{i} = obj.W{i} - eta* obj.M{i} .* (diag(obj.D{i})*obj.O{i} + obj.r*obj.W{i});
-                    obj.b{i} = obj.b{i} - eta* obj.h* obj.D{i} .* obj.df(obj.W{i}, obj.Y{i-1}, obj.b{i});
+                    obj.W{i} = obj.W{i} - eta*(diag(obj.D{i})*obj.O{i} + obj.r*obj.W{i}) - eta*obj.r*2*obj.W{i};
+                    obj.b{i} = obj.b{i} - eta*obj.h* obj.D{i} .* obj.df(obj.W{i}, obj.Y{i-1}, obj.b{i});
                 end
 
             end
@@ -227,6 +226,10 @@ classdef ResNetCustom < handle
                 x = trainData(:, randInd);
                 c = trainLabel(:, randInd);
 
+                % Pad label vector. This is used of ResNetAntiSym_ODE_END child class
+                paddingSize = obj.hiddenLayersSize - max(size(c));
+                c = [c; zeros(paddingSize, 1)];
+
                 y = forwardProp(obj, x);
                 backProp(obj, x, c, eta, true);
 
@@ -249,13 +252,6 @@ classdef ResNetCustom < handle
 
             end
 
-        end
-
-
-        function concav = computeConcavityW(obj, id)
-            % This function computes second derivative of w_{ij}
-            concav = obj.h * diag(obj.D{id}) * obj.ddf(obj.W{id}, obj.Y{id-1}, obj.b{id}) * (obj.Y{id-1}.^2)';
-            obj.C{id} = concav;
         end
 
         function delta = getDelta(obj, id)
