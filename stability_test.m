@@ -7,7 +7,7 @@ validMean = mean(validatimages(:,1:end),2);
 trainImages = trainImages - trainMean;
 validatimages = validatimages - validMean;
 
-load('/home/user1/Documents/ML/matlab/AntiSymResNet/resources/ODE-END_segSig_net_l9_h0.2_n35_p1_s1_r0.008_r1_0.002_newreg.mat')
+load('/home/user1/Documents/ML/matlab/AntiSymResNet/resources/ODE-END_segSig_net_l10_h0.12_n20_p1_s1_r0.005_r1_0.001_r2_0.mat')
 
 x = validatimages(:,index);
 net.forwardProp(x);
