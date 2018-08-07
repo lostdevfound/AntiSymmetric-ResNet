@@ -17,11 +17,18 @@ classdef Regularization
 
         function dRdW = difInter(W_prev, W, W_next)
             sm = @Regularization.sm;
-
             [n,~] = size(W);
-            c = (1.0/n);
-            % dRdW = -1*(W_prev - c*sm(W))*eye(n) + n*(W - c*sm(W_next)) + (W_prev' -c*sm(W'))*(eye(n) - ones(n,n)) + n*(W' - c*sm(W_next'));
-            dRdW = -c*(W_prev - c*sm(W))*eye(n) + (W -c*sm(W_next)) - c*(sm(W_prev') - sm(W));
+            firstCol(1:n,1) = -2.0/n*(sum(W_prev(:,:)) - n*sum(W(:,1)) + sum(W_next(:,1)));
+            otherCols = 2.0/n*(n*W - sum(W_next(:,1)));
+            otherCols(:,1) = firstCol;
+            dRdW = otherCols;
+        end
+
+        function dRdW = difEnd(W_prev, W_L)
+            sm = @Regularization.sm;
+            [n,~] = size(W_L);
+            firstCol(1:n,1) = -2.0/n*(sum(W_prev(:,:)) - n*sum(W_L(:,1)));
+            dRdW = [firstCol, zeros(n, n-1)];
         end
 
 
@@ -33,20 +40,11 @@ classdef Regularization
         end
 
 
-        function dRdW = difEnd(W_prev, W_L)
-            sm = @Regularization.sm;
-            [n,~] = size(W_L);
-            c = (1.0/n);
-            dRdW = -c*(W_prev - c*sm(W_L))*eye(n) - c*(sm(W_prev') - sm(W_L));
-        end
-
-
         function columnSumMatrix = sm(W)
-            W = W';
             [numRow, numCol] = size(W);
 
             for i=1:numCol
-                columnSumVector(i:1) = sum(W(i,:));
+                columnSumVector(i:1) = sum(W(:,i));
             end
 
             columnSumMatrix = repmat(columnSumVector, 1, numCol);

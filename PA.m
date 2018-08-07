@@ -23,8 +23,7 @@ function [perturbation, perturbedVec] = PA(net, inputVec, labelVec, eta, cycles)
 
     while count < cycles
         net.forwardProp(perturbedVec);      % update the NN's y^(l) neuron values
-        dCdX = net.backProp(inputVec, labelVec, eta, false);       % calculate gradients based on new neuron values
-
+        dCdX = net.backProp(perturbedVec, labelVec, eta, false);
         perturbation = perturbation + eta * dCdX;           % compute perturbation vector
         perturbedVec = perturbedVec + perturbation;         % perturb the inputVec
 

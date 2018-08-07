@@ -10,9 +10,9 @@ validatimages = validatimages - validMean;
 
 % Setup NN's params
 NN = 'ODE-END';        % Train 'AntiSym' or 'ResNet'
-trainCycles = 600000;        % default 400000
-eta = 0.001;                 % good default 0.005
-neurons = 20;
+trainCycles = 150000;        % default 400000
+eta = 0.0001;                 % good default 0.005
+neurons = 40;
 layers = 10;
 initScaler = 0.01;             % default 0.01
 h = 0.11;                       % default 0.1
@@ -24,7 +24,7 @@ activ = 'segSig';
 p = 1;
 s = 1;
 
-first_time_launch = true;
+first_time_launch = false;
 doPerturbation = true;
 
 
@@ -36,9 +36,10 @@ if first_time_launch == true
 
     % Init NN and train it
     if strcmp(NN, 'ODE-END')
-         net = ResNetAntiSym_ODE_END(layers, 784, 10, neurons, igamma, h, initScaler, false, activ, p, s, regular, regular1, regular2);
+        % load('/home/user1/Documents/ML/matlab/AntiSymResNet/resources/ODE-END_segSig_net_l10_h0.11_n20_p1_s1_r0.004_r1_0.001_r2_0.mat')
+        net = ResNetAntiSym_ODE_END(layers, 784, 10, neurons, igamma, h, initScaler, false, activ, p, s, regular, regular1, regular2);
     elseif strcmp(NN, 'AntiSym')
-         net = ResNetAntiSym(layers, 784, 10, neurons, igamma, h, initScaler, false, activ, p, s, regular, regular1, regular2);
+        net = ResNetAntiSym(layers, 784, 10, neurons, igamma, h, initScaler, false, activ, p, s, regular, regular1, regular2);
     elseif strcmp(NN, 'ResNet')
         net = ResNetCustom(layers, 784, 20, neurons, h, initScaler, false, activ, p, s, regular, regular1, regular2);
     else
@@ -50,7 +51,7 @@ if first_time_launch == true
     disp('training complete.');
 
     % Save trained net
-    netStr = {'resources/', NN, '_',  activ, '_net_l', num2str(layers), '_h', num2str(h), '_n', num2str(neurons), '_p', num2str(p), '_s', num2str(s), '_r', num2str(regular), '_r1_', num2str(regular1),'_r2_', num2str(regular2), '.mat'};
+    netStr = {'resources/', NN, '_',  activ, '_net_l', num2str(net.numHiddenLayers), '_h', num2str(net.h), '_n', num2str(net.hiddenLayersSize), '_p', num2str(net.p), '_s', num2str(net.s), '_r', num2str(net.r), '_r1_', num2str(net.r1),'_r2_', num2str(net.r2), '.mat'};
     [~,numNames] = size(netStr);
 
     str = '';
@@ -59,7 +60,7 @@ if first_time_launch == true
     end
     save(str{1},'net');
 else
-load('/home/user1/Documents/ML/matlab/AntiSymResNet/resources/ResNet_segSig_net_l10_h0.11_n20_p1_s1_r0.005_r1_0.001_r2_0.mat')
+load('/home/user1/Documents/ML/matlab/AntiSymResNet/resources/ODE-END_segSig_net_l10_h0.11_n20_p1_s1_r0.004_r1_0.001_r2_0.mat')
 end
 
 
@@ -68,8 +69,8 @@ end
 %              Perturbation part            %
 %                                           %
 normSum = 0;
-samples = 100;
-offset=100;
+samples = 0;
+offset=52;
 pert_eta = 0.01;
 pertCycles = 10000;
 perturbedImg = 0;
@@ -79,10 +80,13 @@ for k = offset:offset + samples
     index = k;     % Pick some image by its index (digit 3 is index 33)
     testImg =  validatimages(:,index);
     labelVec = validatLabels(:,index);
-    % Padding for ODE end NN
-    paddingSize = net.hiddenLayersSize - max(size(labelVec));
-    labelVec= [labelVec; zeros(paddingSize, 1)];
 
+    % Padding for ODE END NN
+    if net.outputLayerSize == 0
+        paddingSize = net.hiddenLayersSize - max(size(labelVec));
+        labelVec= [labelVec; zeros(paddingSize, 1)];
+    end
+    
     noisyImg = min(testImg + 0.3*rand(784,1), 1);   % limit the range from 0 to 1
 
     [~,classifIndex] = max(ActivFunc.softmax(net.forwardProp(testImg))');

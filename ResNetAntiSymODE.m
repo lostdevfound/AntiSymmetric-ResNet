@@ -100,6 +100,6 @@ classdef ResNetAntiSymODE < ResNetCustom
             end
         end
 
-        
+
     end
 end

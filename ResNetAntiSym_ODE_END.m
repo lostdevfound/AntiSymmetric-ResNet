@@ -93,19 +93,19 @@ classdef ResNetAntiSym_ODE_END < ResNetCustom
                         if i==3
                             dRdW = Regularization.difStart(obj.W{i}, obj.W{i+1});
                             dRdK = 0.5*(dRdW - dRdW');
-                            dRdb = -2*(obj.b{i+1} - obj.b{i});
+                            % dRdb = -2*(obj.b{i+1} - obj.b{i});
                         elseif i==YN
-                            dRdW = Regularization.difEnd(obj.W{i-1}, obj.W{i});
+                            % dRdW = Regularization.difEnd(obj.W{i-1}, obj.W{i});
+                            dRdW = 0;
                             dRdK = 0.5*(dRdW - dRdW');
-                            dRdb = -2*(obj.b{i} - obj.b{i-1});
+                            % dRdb = -2*(obj.b{i} - obj.b{i-1});
                         else
                             dRdW = Regularization.difInter(obj.W{i-1}, obj.W{i}, obj.W{i+1});
                             dRdK = 0.5*(dRdW - dRdW');
-                            dRdb = -2*(obj.b{i+1} -2*obj.b{i} + obj.b{i-1});
+                            % dRdb = -2*(obj.b{i+1} -2*obj.b{i} + obj.b{i-1});
                         end
                     end
 
-                    % obj.K{i} = obj.K{i} - eta * 0.5*(diag(obj.D{i})*obj.O{i} - (diag(obj.D{i})*obj.O{i})') - eta*obj.r*(obj.W{i} - obj.W{i}');
                     obj.K{i} = obj.K{i} - eta * 0.5*(diag(obj.D{i})*obj.O{i} - (diag(obj.D{i})*obj.O{i})') - eta*obj.r*dRdK;
                     obj.W{i} = 0.5*(obj.K{i} - obj.K{i}' - obj.G);
                     obj.b{i} = obj.b{i} - eta* obj.h* obj.D{i} .* obj.df(obj.W{i}, obj.Y{i-1}, obj.b{i}) - eta*obj.r*dRdb;

@@ -10,7 +10,7 @@ validMean = mean(validatimages(:,1:end),2);
 trainImages = trainImages - trainMean;
 validatimages = validatimages - validMean;
 
-load('/home/user1/Documents/ML/matlab/AntiSymResNet/resources/ResNet_segSig_net_l10_h0.11_n20_p1_s1_r0.005_r1_0.001_r2_0.mat')
+load('/home/user1/Documents/ML/matlab/AntiSymResNet/resources/ODE-END_segSig_net_l10_h0.5_n20_p1_s1_r0.7_r1_0.001_r2_0.mat')
 
 % Training and Validation costs and errors
 trainingCost = 0;

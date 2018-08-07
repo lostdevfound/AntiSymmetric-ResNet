@@ -219,6 +219,7 @@ classdef ResNetCustom < handle
             [vecSize, numVecs] = size(trainData);
             costAvg = 0;
             numSamples = 3000;
+            trainingError = 0;
 
             for i = 1:cycles
 
@@ -226,9 +227,11 @@ classdef ResNetCustom < handle
                 x = trainData(:, randInd);
                 c = trainLabel(:, randInd);
 
-                % Pad label vector. This is used of ResNetAntiSym_ODE_END child class
-                paddingSize = obj.hiddenLayersSize - max(size(c));
-                c = [c; zeros(paddingSize, 1)];
+                if obj.outputLayerSize == 0
+                    % Pad label vector. This is used of ResNetAntiSym_ODE_END child class
+                    paddingSize = obj.hiddenLayersSize - max(size(c));
+                    c = [c; zeros(paddingSize, 1)];
+                end
 
                 y = forwardProp(obj, x);
                 backProp(obj, x, c, eta, true);
@@ -237,17 +240,19 @@ classdef ResNetCustom < handle
                 softY = ActivFunc.softmax(y);
 
                 costAvg = costAvg + norm(c - softY')^2;
+                trainingError = trainingError + computeError(obj, softY', c);
 
                 % Display stats
                 if mod(i, numSamples) == 0
                     progress = 100*i / cycles;
-                    classifRes=[softY',c];
-                    signalY = [obj.matrixY];
-                    minMaxSignalY = [min(signalY);max(signalY)];
+                    % classifRes=[softY',c];
+                    % signalY = [obj.matrixY];
+                    % minMaxSignalY = [min(signalY);max(signalY)];
+                    % weightNorms = obj.weightNorms();
                     costAvg = costAvg / double(numSamples);
-                    disp(['average cost over ', num2str(numSamples, '%0d'),' samples: ', num2str(costAvg, '%0.3f'),' progress: ', num2str(progress)]);
-                    weightNorms = obj.weightNorms();
+                    disp([' samples: ', num2str(numSamples, '%0d'), ' training cost: ', num2str(costAvg, '%0.3f'),' trainingError: ', num2str(trainingError/numSamples, '%0.2f'), ' progress: ', num2str(progress)]);
                     costAvg = 0;
+                    trainingError = 0;
                 end
 
             end
@@ -300,6 +305,16 @@ classdef ResNetCustom < handle
             end
         end
 
+
+        function error = computeError(obj, predictionVec, labelVec)
+            [~,label] = max(labelVec);
+            [~,predictLabel] = max(predictionVec);
+            if predictLabel ~= label
+                error = 1.0;
+            else
+                error = 0.0;
+            end
+        end
 
     end
 end

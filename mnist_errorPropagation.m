@@ -10,14 +10,14 @@ validatimages = validatimages - validMean;
 NN ='AntiSym'
 
 if strcmp(NN,'AntiSym')
-load('/home/user1/Documents/ML/matlab/AntiSymResNet/resources/AntiSym-no-reg.mat')
+load('/home/user1/Documents/ML/matlab/AntiSymResNet/resources/ODE-END_segSig_net_l10_h0.11_n20_p1_s1_r0.004_r1_0.001_r2_0.mat')
 elseif strcmp(NN,'ResNet')
 load('/home/user1/Documents/ML/matlab/AntiSymResNet/resources/ResNet_segSig_net_l10_h0.11_n20_p1_s1_r0.005_r1_0.001_r2_0.mat')
 else
     eror('Wrong NN str')
 end
 
-index = 42;
+index = 99;
 testVec = validatimages(:,index);
 labelVec = validatLabels(:,index);
 
@@ -37,8 +37,9 @@ correctPropagation = net.getArrayY();
 
 classifPerturbed = net.forwardProp(perturbedVec);
 fooledPropagation = net.getArrayY();
-
-results = [ActivFunc.softmax(classifPerturbed)', ActivFunc.softmax(classifOriginal)'];
+[~,classifPertLabel] = max(ActivFunc.softmax(classifPerturbed));
+[~, classifOriginalLabel] = max(ActivFunc.softmax(classifOriginal));
+results = [classifPertLabel, classifOriginalLabel];
 disp('Classification Results: Perturbed Original')
 disp(results);
 
@@ -46,21 +47,11 @@ differenceNorms = [];
 
 % Propagation from y^2 to y^L
 for i=1:net.totalNumLayers
-    differenceNorms(i) = norm(correctPropagation{i} - fooledPropagation{i});
+    differenceNorms(i) = (norm(correctPropagation{i} - fooledPropagation{i}));
 end
 
 disp('difference norms')
 differenceNorms
-
-% Inputs for the NN
-X(1) = testVec(1);
-X(2) = perturbedVec(1);
-
-Y(1) = testVec(2);
-Y(2) = perturbedVec(2);
-
-Z(1) = testVec(3);
-Z(2) = perturbedVec(3);
 
 disp('index:');disp(index);
 
@@ -75,7 +66,8 @@ figure;
 subplot(1,2,1);
 perturbedVec = perturbedVec + validMean;
 digitPerturbed = reshape(perturbedVec, [28,28]);    % row = 28 x 28 image
-imshow(digitPerturbed*255, [0 255])      % show the image
+% imshow(digitPerturbed*255, [0 255])      % show the image
+imshow(digitPerturbed)      % show the image
 title('perturbed');
 
 subplot(1,2,2);
