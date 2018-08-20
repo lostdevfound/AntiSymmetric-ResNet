@@ -95,8 +95,7 @@ classdef ResNetAntiSym_ODE_END < ResNetCustom
                             dRdK = 0.5*(dRdW - dRdW');
                             % dRdb = -2*(obj.b{i+1} - obj.b{i});
                         elseif i==YN
-                            % dRdW = Regularization.difEnd(obj.W{i-1}, obj.W{i});
-                            dRdW = 0;
+                            dRdW = Regularization.difEnd(obj.W{i-1}, obj.W{i});
                             dRdK = 0.5*(dRdW - dRdW');
                             % dRdb = -2*(obj.b{i} - obj.b{i-1});
                         else

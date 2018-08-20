@@ -9,22 +9,22 @@ trainImages = trainImages - trainMean;
 validatimages = validatimages - validMean;
 
 % Setup NN's params
-NN = 'ODE-END';        % Train 'AntiSym' or 'ResNet'
-trainCycles = 150000;        % default 400000
-eta = 0.0001;                 % good default 0.005
-neurons = 40;
+NN = 'ResNet';        % Train 'AntiSym' or 'ResNet'
+trainCycles = 100000;        % default 400000
+eta = 0.001;                 % good default 0.005
+neurons = 20;
 layers = 10;
 initScaler = 0.01;             % default 0.01
-h = 0.11;                       % default 0.1
+h = 0.9;                       % default 0.1
 igamma = 0.0001;               % default 0.0001
 regular = 0;               % default 0.002
-regular1 = 0.001;              % default 0.002
+regular1 = 0;              % default 0.002
 regular2 = 0;              % default 0.002
-activ = 'segSig';
+activ = 'relu';
 p = 1;
 s = 1;
 
-first_time_launch = false;
+first_time_launch = true;
 doPerturbation = true;
 
 
@@ -36,12 +36,12 @@ if first_time_launch == true
 
     % Init NN and train it
     if strcmp(NN, 'ODE-END')
-        % load('/home/user1/Documents/ML/matlab/AntiSymResNet/resources/ODE-END_segSig_net_l10_h0.11_n20_p1_s1_r0.004_r1_0.001_r2_0.mat')
-        net = ResNetAntiSym_ODE_END(layers, 784, 10, neurons, igamma, h, initScaler, false, activ, p, s, regular, regular1, regular2);
+         net = ResNetAntiSym_ODE_END(layers, 784, 0, neurons, igamma, h, initScaler, false, activ, p, s, regular, regular1, regular2);
+
     elseif strcmp(NN, 'AntiSym')
         net = ResNetAntiSym(layers, 784, 10, neurons, igamma, h, initScaler, false, activ, p, s, regular, regular1, regular2);
     elseif strcmp(NN, 'ResNet')
-        net = ResNetCustom(layers, 784, 20, neurons, h, initScaler, false, activ, p, s, regular, regular1, regular2);
+        net = ResNetCustom(layers, 784, 10, neurons, h, initScaler, false, activ, p, s, regular, regular1, regular2);
     else
         error('Wrong NN string');
     end
@@ -60,7 +60,7 @@ if first_time_launch == true
     end
     save(str{1},'net');
 else
-load('/home/user1/Documents/ML/matlab/AntiSymResNet/resources/ODE-END_segSig_net_l10_h0.11_n20_p1_s1_r0.004_r1_0.001_r2_0.mat')
+load('/home/user1/Documents/ML/matlab/AntiSymResNet/resources/ODE-END_segSig_net_l10_h0.5_n20_p1_s1_r0.7_r1_0.001_r2_0.mat')
 end
 
 
@@ -69,9 +69,9 @@ end
 %              Perturbation part            %
 %                                           %
 normSum = 0;
-samples = 0;
-offset=52;
-pert_eta = 0.01;
+samples = 100;
+offset=100;
+pert_eta = 0.02;
 pertCycles = 10000;
 perturbedImg = 0;
 

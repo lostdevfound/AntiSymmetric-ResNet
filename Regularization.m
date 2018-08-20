@@ -4,6 +4,10 @@ classdef Regularization
     end
 
     methods (Static)
+        function dRdW = regFunc(net, regType, layerNum)
+            if strcmp(regtype, 'L2')
+            end
+        end
 
         function dRdW = L2(W)
             dRdW = 2*W;
@@ -48,6 +52,19 @@ classdef Regularization
             end
 
             columnSumMatrix = repmat(columnSumVector, 1, numCol);
+        end
+
+
+        function dRdW = difInterH(W_prev, W, W_next)
+            dRdW = -2*(W_next -2*W + W_prev);
+        end
+
+        function dRdW = difStartH(W, W_next)
+            dRdW = -2*(W_next - W);
+        end
+
+        function dRdW = difEndH(W_prev, W_L)
+            dRdW = -2*(W_L - W_prev);
         end
 
 

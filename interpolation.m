@@ -1,10 +1,10 @@
 clear all
 
-load('/home/user1/Documents/ML/matlab/AntiSymResNet/resources/ODE-END_segSig_net_l10_h0.2_n20_p1_s1_r0.008_r1_0.001_r2_0.mat')
+load('/home/user1/Documents/ML/matlab/AntiSymResNet/resources/ODE-END_segSig_net_l20_h0.6_n10_p1_s1_r0.7_r1_0.001_r2_0.mat')
 
 % Super-resolution factor:
 % the new grid will have resolution 1/super_res_factor (old grid has step 1)
-super_res_factor = 5;
+super_res_factor = 3;
 
 % Extract Anti-Symmetric ResNet Weights Matrices from the network
 L_old = net.totalNumLayers;

@@ -21,11 +21,12 @@ function [perturbation, perturbedVec] = PA(net, inputVec, labelVec, eta, cycles)
 
     [~,labelIndex] = max(labelVec);
 
+    net.forwardProp(inputVec);      % update the NN's y^(l) neuron values
+
     while count < cycles
-        net.forwardProp(perturbedVec);      % update the NN's y^(l) neuron values
-        dCdX = net.backProp(perturbedVec, labelVec, eta, false);
+        dCdX = net.backProp(inputVec, labelVec, eta, false);
         perturbation = perturbation + eta * dCdX;           % compute perturbation vector
-        perturbedVec = perturbedVec + perturbation;         % perturb the inputVec
+        perturbedVec = inputVec + perturbation;         % perturb the inputVec
 
         classifRes = ActivFunc.softmax(net.forwardProp(perturbedVec))';
 
@@ -41,6 +42,6 @@ function [perturbation, perturbedVec] = PA(net, inputVec, labelVec, eta, cycles)
     end
 
     disp('Could not perturb the inputVec.')
-    perturbation = 0;
-    perturbedVec = 0;
+    perturbation = zeros(size(inputVec));
+    perturbedVec = zeros(size(inputVec));
 end

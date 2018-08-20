@@ -10,22 +10,23 @@ validLabelSet = labelSet(:,10001:30000);
 validDataSet  = dataSet(:,10001:30000);
 
 % Setup NN's params
-NN_type = 'ODE';          % ODE or Custom where Custom is a regular ResNet
+NN_type = 'ResNet';          % ODE or Custom where Custom is a regular ResNet
 igamma = 0.001;          % default 0.0001
-trainCycles = 300000;       % default 400000
-eta = 0.05;                % good default 0.003
+trainCycles = 100000;       % default 400000
+eta = 0.01;                % good default 0.003
 initScaler = 0.01;           % default 0.01
-neurons = 3;
-layers = 15;
-h = 0.5;
+neurons = 10;
+layers = 5;
+h = 0.9;
 activFunc = 'relu';
-regular = 0.002;
+regular = 0;
 p = 1; % activation function parameter
 s = 1; % activation function parameter
-
+r1 = 0;
+r2 = 0;
 
 % Set to true if need to retrain
-first_time_launch = true;
+first_time_launch = false;
 doPerturbation = true;
 
 %                                           %
@@ -36,10 +37,10 @@ if first_time_launch == true
     % Init NN and train it. Params i_numHiddenLayers, i_inputLayerSize, i_outputLayerSize, i_hiddenLayersSize, i_gamma, h, initScaler, i_testMode
     if strcmp(NN_type, 'ODE')
         disp('training...'); disp(NN_type);
-        net = ResNetAntiSymODE(layers, 3, 3, neurons, igamma, h, initScaler, false, activFunc, regular, p, s);
-    elseif strcmp(NN_type, 'Custom')
+        net = ResNetAntiSymODE(layers, 3, 3, neurons, igamma, h, initScaler, false, activFunc, p, s, regular, r1, r2);
+    elseif strcmp(NN_type, 'ResNet')
         disp('training...'); disp(NN_type);
-        net = ResNetCustom(layers, 3, 3, neurons, h, initScaler, false, activFunc, p, s, regular);
+        net = ResNetCustom(layers, 3, 3, neurons, h, initScaler, false, activFunc, p, s, regular, r1, r2);
     end
 
     net.train(trainDataSet, trainLabelSet, trainCycles, eta);
@@ -57,7 +58,7 @@ if first_time_launch == true
 
 else
 
-    load('resources/ODE_relu_net_l15_h0.1_n3_p1_s1_r0_gamma0.0001.mat')
+load('/home/user1/Documents/ML/matlab/AntiSymResNet/resources/ResNet_relu_net_l5_h0.9_n10_p1_s1_r0_3d-test.mat')
 %     load('resources/Custom_relu_net_l10_h0.5_n3_p1_s1_r0_gamma0.0001.mat')
 end
 
@@ -68,8 +69,8 @@ end
 %                                           %
 
 normSum = 0;
-samples = 200; % number of vector being perturbed
-offset= 4;
+samples = 0; % number of vector being perturbed
+offset= 13;
 label = 0;
 pert_eta = 0.01;
 pertCycles = 10000;

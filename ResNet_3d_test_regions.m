@@ -1,6 +1,6 @@
 clear;clc;close all;
 % load('resources/ODE_tan_h_net_l15_h0.3_n3_p1_s1_r0.0001_gamma0.0001.mat');
-load('resources/ODE_tan_h_net_l25_h0.3_n3_p1_s1_r0.0001_gamma0.0001.mat')
+load('/home/user1/Documents/ML/matlab/AntiSymResNet/resources/ResNet_relu_net_l5_h0.9_n10_p1_s1_r0_3d-test.mat')
 
 a = 0; b = 0; c = 1; d = -1; resolution = 80;
 

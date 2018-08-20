@@ -74,13 +74,8 @@ classdef ResNetCustom < handle
             % obj.W2_lin = obj.initScaler*normrnd(0,1,[obj.hiddenLayersSize, obj.inputLayerSize]);
             % obj.b2_lin = obj.initScaler*normrnd(0,1,[obj.hiddenLayersSize,1]);
 
-            % obj.WYN_lin = zeros(obj.outputLayerSize, obj.hiddenLayersSize);
-            % obj.bYN_lin = zeros(obj.outputLayerSize, 1);
             obj.WYN_lin = obj.initScaler*normrnd(0,1,[obj.outputLayerSize, obj.hiddenLayersSize]);
             obj.bYN_lin = obj.initScaler*normrnd(0,1,[obj.outputLayerSize,1]);
-
-
-            % gammaMatrix = obj.igamma*eye(obj.hiddenLayersSize );
 
             % Build intermediate W and b
             for i = 3:obj.numHiddenLayers + 2   % build W^(3),...,W^(L-1)

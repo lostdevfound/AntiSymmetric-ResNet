@@ -7,29 +7,28 @@ validMean = mean(validatimages(:,1:end),2);
 trainImages = trainImages - trainMean;
 validatimages = validatimages - validMean;
 
-load('/home/user1/Documents/ML/matlab/AntiSymResNet/resources/ODE-END_segSig_net_l10_h0.11_n20_p1_s1_r0.004_r1_0.001_r2_0.mat')
+load('/home/user1/Documents/ML/matlab/AntiSymResNet/resources/interpolated.mat')
 
 x = validatimages(:,index);
 net.forwardProp(x);
 eulerStabilityTest(net);
 
-
 function result = eulerStabilityTest(net)
-
+    avgStability = 0;
     count = 0;
 
-    for i=3:net.totalNumLayers
+    for i=3:net.totalNumLayers-1
         jacobian = diag(net.df(net.W{i}, net.Y{i-1}, net.b{i}))*net.W{i};
 
         eulerStability = max(abs(1+net.h*eig(jacobian)))
+        avgStability = avgStability + eulerStability;
 
-        if eulerStability > 1
-            msg = {'euler stability failed, layer: ', num2str(i)};
-            disp(msg);
-            count = count + 1;
-        end
+        msg = {'euler stability, layer: ', num2str(eulerStability)};
+        disp(msg);
+        count = count + 1;
     end
-    msg = {'num layers failed ES', num2str(count)};
+
+    msg = {'avg Euler Stability', num2str(avgStability/count)};
     disp(msg);
 end
 
